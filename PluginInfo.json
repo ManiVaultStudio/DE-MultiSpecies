@@ -1,5 +1,5 @@
 {
-    "name" : "Differential Expression View",
+    "name" : "DE (Multiple species)",
     "version" :  {
         "plugin" : "1.0.0",
         "core" : ["1.4"]

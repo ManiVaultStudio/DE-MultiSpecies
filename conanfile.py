@@ -9,8 +9,8 @@ import subprocess
 from rules_support import PluginBranchInfo
 
 
-class DifferentialExpressionPluginConan(ConanFile):
-    """Class to package DifferentialExpressionPlugin using conan
+class DEMultiSpeciesPluginConan(ConanFile):
+    """Class to package DEMultiSpeciesPlugin using conan
 
     Packages both RELEASE and DEBUG.
     Uses rules_support (github.com/ManiVaultStudio/rulessupport) to derive
@@ -18,10 +18,10 @@ class DifferentialExpressionPluginConan(ConanFile):
     as described in https://github.com/ManiVaultStudio/core/wiki/Branch-naming-rules
     """
 
-    name = "DifferentialExpressionPlugin"
+    name = "DEMultiSpeciesPlugin"
     description = "A plugin for viewing differential expressions in the high-dimensional plugin system (ManiVaultStudio)."
     topics = ("mv", "plugin", "view", "differential", "expression")
-    url = "https://github.com/ManiVaultStudio/DifferentialExpressionPlugin"
+    url = "https://github.com/ManiVaultStudio/DE-MultiSpecies"
     author = "B. van Lew b.van_lew@lumc.nl"  # conan recipe author
     license = "MIT"
 
@@ -37,7 +37,7 @@ class DifferentialExpressionPluginConan(ConanFile):
 
     scm = {
         "type": "git",
-        "subfolder": "hdps/DifferentialExpressionPlugin",
+        "subfolder": "hdps/DEMultiSpeciesPlugin",
         "url": "auto",
         "revision": "auto",
     }
@@ -120,7 +120,7 @@ class DifferentialExpressionPluginConan(ConanFile):
 
     def _configure_cmake(self):
         cmake = CMake(self)
-        cmake.configure(build_script_folder="hdps/DifferentialExpressionPlugin")
+        cmake.configure(build_script_folder="hdps/DEMultiSpeciesPlugin")
         cmake.verbose = True
         return cmake
 

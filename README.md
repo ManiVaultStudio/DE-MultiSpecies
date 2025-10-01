@@ -1,9 +1,10 @@
-# Differential Expression Viewer
+# DE Multi-Species Viewer
 
-View plugin for the [ManiVault Studio](https://github.com/ManiVaultStudio/core) framework for a basic comparison of genetic expression levels between selections (differential expression).
+View plugin for the [ManiVault Studio](https://github.com/ManiVaultStudio/core) framework for a basic comparison of genetic expression levels between selections (differential expression) for multiple species.
+Forked from [ManiVaultStudio/DifferentialExpressionPlugin](https://github.com/ManiVaultStudio/DifferentialExpressionPlugin).
 
 ```bash
-git clone https://github.com/ManiVaultStudio/DifferentialExpressionPlugin.git
+git clone https://github.com/ManiVaultStudio/DE-MultiSpecies.git
 ```
 
 This plugin captures variability between user-selected subsets by comparing the difference between expression averages per dimension. It computes the mean and median expression of all items (e.g. cells) in a selection and defines the differential expression as the difference of the means.
@@ -16,7 +17,7 @@ Information on more in-depth differential expression techniques can be found in 
 
 ## How to use
 
-1. Load a point data set, either via right-click in the data hierarchy and selecting `View -> Differential Expression`, by or opening an empty widget via the main toolbar with `View -> Differential Expression View` and then dragging-and-dropping the data into the small field that ask for a dataset.
+1. Load a point data set, either via right-click in the data hierarchy and selecting `View -> DE (Multiple species)`, by or opening an empty widget via the main toolbar with `View -> DE (Multiple species)` and then dragging-and-dropping the data into the small field that ask for a dataset.
 2. Make two selection in the data, e.g. via a [scatterplot](https://github.com/ManiVaultStudio/Scatterplot) view. Save each selection by clicking the respective buttons at the bottom of the view.
 3. Click the button above the selection-setters to compute the differential expression.
 4. The resulting DE computation will be listed in table form, with one row for each dimension of the data (listed in the `ID` column).

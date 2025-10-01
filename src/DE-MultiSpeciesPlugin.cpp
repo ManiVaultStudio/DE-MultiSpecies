@@ -1,4 +1,4 @@
-#include "DifferentialExpressionPlugin.h"
+#include "DE-MultiSpeciesPlugin.h"
 
 #include <DatasetsMimeData.h>
 
@@ -16,7 +16,7 @@
 #include <cmath>
 #include <limits>
 
-Q_PLUGIN_METADATA(IID "nl.BioVault.DifferentialExpressionPlugin")
+Q_PLUGIN_METADATA(IID "nl.BioVault.DEMultiSpeciesPlugin")
 
 using namespace mv;
 
@@ -57,7 +57,7 @@ namespace local
         else
         {
 #ifdef _DEBUG
-            qDebug() << "ClusterDifferentialExpressionPlugin: Error: requested " << QMetaType::fromType<T>().name() << " but value is of type " << variant.metaType().name();
+            qDebug() << "ClusterDEMultiSpeciesPlugin: Error: requested " << QMetaType::fromType<T>().name() << " but value is of type " << variant.metaType().name();
 #endif
             return T();
         }
@@ -100,7 +100,7 @@ namespace local
 
 }
 
-DifferentialExpressionPlugin::DifferentialExpressionPlugin(const PluginFactory* factory) :
+DEMultiSpeciesPlugin::DEMultiSpeciesPlugin(const PluginFactory* factory) :
     ViewPlugin(factory),
     _loadedDatasetsAction(this, "Current dataset"),
     _dropWidget(nullptr),
@@ -178,7 +178,7 @@ DifferentialExpressionPlugin::DifferentialExpressionPlugin(const PluginFactory* 
 
     connect(&_filterOnIdAction, &mv::gui::StringAction::stringChanged, _sortFilterProxyModel, &TableSortFilterProxyModel::nameFilterChanged);
 
-    connect(&_updateStatisticsAction, &mv::gui::TriggerAction::triggered, this, &DifferentialExpressionPlugin::computeDE);
+    connect(&_updateStatisticsAction, &mv::gui::TriggerAction::triggered, this, &DEMultiSpeciesPlugin::computeDE);
 
     connect(&_normAction, &mv::gui::ToggleAction::toggled, this, [this]()
         {
@@ -202,7 +202,7 @@ DifferentialExpressionPlugin::DifferentialExpressionPlugin(const PluginFactory* 
     _serializedActions.append(&_openAdditionalSettingsAction);
 }
 
-void DifferentialExpressionPlugin::init()
+void DEMultiSpeciesPlugin::init()
 {
     QWidget& mainWidget = getWidget();
     _loadedDatasetsAction.initialize(this);
@@ -234,7 +234,7 @@ void DifferentialExpressionPlugin::init()
         _tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
         _tableView->setContextMenuPolicy(Qt::ActionsContextMenu);
 
-        connect(_tableView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &DifferentialExpressionPlugin::tableView_selectionChanged);
+        connect(_tableView->selectionModel(), &QItemSelectionModel::selectionChanged, this, &DEMultiSpeciesPlugin::tableView_selectionChanged);
 
         WordWrapHeaderView* horizontalHeader = new WordWrapHeaderView(Qt::Horizontal, _tableView, true);
 
@@ -309,7 +309,7 @@ void DifferentialExpressionPlugin::init()
         // Visually indicate if the dataset is of the wrong data type and thus cannot be dropped
         if (!dataTypes.contains(dataType)) {
             dropRegions << new DropWidget::DropRegion(this, "Incompatible data", "This type of data is not supported", "exclamation-circle", false);
-            qDebug() << "ClusterDifferentialExpressionPlugin: Incompatible data: This type of data is not supported";
+            qDebug() << "ClusterDEMultiSpeciesPlugin: Incompatible data: This type of data is not supported";
         }
         else
         {
@@ -324,7 +324,7 @@ void DifferentialExpressionPlugin::init()
 
                     // Dataset cannot be dropped because it is already loaded
                     dropRegions << new DropWidget::DropRegion(this, "Warning", "Data already loaded", "exclamation-circle", false);
-                    qDebug() << "ClusterDifferentialExpressionPlugin: Warning: Data already loaded";
+                    qDebug() << "ClusterDEMultiSpeciesPlugin: Warning: Data already loaded";
                 }
                 else {
 
@@ -381,7 +381,7 @@ void DifferentialExpressionPlugin::init()
         otherDataSelection       = otherData.isValid() ? otherData->getSelection<Points>()->indices : std::vector<uint32_t>{};
         sortAndUnique(otherDataSelection);
 
-        qDebug() << "ClusterDifferentialExpressionPlugin: Saved selection " << selectionName << " with " << selection.size() << " items.";
+        qDebug() << "ClusterDEMultiSpeciesPlugin: Saved selection " << selectionName << " with " << selection.size() << " items.";
 
         if (_selectionA.size() != 0 && _selectionB.size() != 0)
             _buttonProgressBar->showStatus(TableModel::Status::OutDated);
@@ -441,15 +441,15 @@ void DifferentialExpressionPlugin::init()
     layout->addLayout(selectionLayout);
 
      // Load points when the pointer to the position dataset changes
-    connect(&_points, &Dataset<Points>::changed, this, &DifferentialExpressionPlugin::positionDatasetChanged);
+    connect(&_points, &Dataset<Points>::changed, this, &DEMultiSpeciesPlugin::positionDatasetChanged);
 }
 
 
-void DifferentialExpressionPlugin::setPositionDataset(const mv::Dataset<Points>& newPoints)
+void DEMultiSpeciesPlugin::setPositionDataset(const mv::Dataset<Points>& newPoints)
 {
     if (!newPoints.isValid())
     {
-        qDebug() << "DifferentialExpressionPlugin Warning: invalid dataset!";
+        qDebug() << "DEMultiSpeciesPlugin Warning: invalid dataset!";
         return;
     }
 
@@ -463,7 +463,7 @@ void DifferentialExpressionPlugin::setPositionDataset(const mv::Dataset<Points>&
     _dropWidget->setShowDropIndicator(false);
 }
 
-void DifferentialExpressionPlugin::positionDatasetChanged()
+void DEMultiSpeciesPlugin::positionDatasetChanged()
 {
     // Do not show the drop indicator if there is a valid point positions dataset
     _dropWidget->setShowDropIndicator(!_points.isValid());
@@ -481,7 +481,7 @@ void DifferentialExpressionPlugin::positionDatasetChanged()
 
     if (recompute)
     {
-        qDebug() << "ClusterDifferentialExpressionPlugin: Computing dimension ranges";
+        qDebug() << "ClusterDEMultiSpeciesPlugin: Computing dimension ranges";
         _minValues.resize(numDimensions, std::numeric_limits<float>::max());
         _rescaleValues.resize(numDimensions, std::numeric_limits<float>::lowest());
 
@@ -522,7 +522,7 @@ void DifferentialExpressionPlugin::positionDatasetChanged()
         recompute |= (maxList.size() != numDimensions);
         if (!recompute)
         {
-            qDebug() << "ClusterDifferentialExpressionPlugin: Loading dimension ranges";
+            qDebug() << "ClusterDEMultiSpeciesPlugin: Loading dimension ranges";
             // load them from properties
             _minValues.resize(numDimensions);
             _rescaleValues.resize(numDimensions);
@@ -547,10 +547,10 @@ void DifferentialExpressionPlugin::positionDatasetChanged()
             _rescaleValues[d] = 1.0f;
     }
 
-    qDebug() << "DifferentialExpressionPlugin: Loaded " << numDimensions << " dimensions for " << numPoints << " points";
+    qDebug() << "DEMultiSpeciesPlugin: Loaded " << numDimensions << " dimensions for " << numPoints << " points";
 }
 
-void DifferentialExpressionPlugin::writeToCSV() const
+void DEMultiSpeciesPlugin::writeToCSV() const
 {
     if (_tableItemModel.isNull())
         return;
@@ -566,7 +566,7 @@ void DifferentialExpressionPlugin::writeToCSV() const
     // Only continue when the dialog has not been not canceled and the file name is non-empty.
     if (fileName.isNull() || fileName.isEmpty())
     {
-        qDebug() << "ClusterDifferentialExpressionPlugin: No data written to disk - File name empty";
+        qDebug() << "ClusterDEMultiSpeciesPlugin: No data written to disk - File name empty";
         return;
     }
     else
@@ -586,7 +586,7 @@ void DifferentialExpressionPlugin::writeToCSV() const
     file.close();
 }
 
-void DifferentialExpressionPlugin::computeDE()
+void DEMultiSpeciesPlugin::computeDE()
 {
     if (!_points.isValid())
         return;
@@ -594,7 +594,7 @@ void DifferentialExpressionPlugin::computeDE()
     _tableItemModel->invalidate();
 
     // Compute differential expr
-    qDebug() << "ClusterDifferentialExpressionPlugin: Computing differential expression.";
+    qDebug() << "ClusterDEMultiSpeciesPlugin: Computing differential expression.";
 
     const std::ptrdiff_t numDimensions = _points->getNumDimensions();
     const size_t selectionSizeA = _selectionA.size();
@@ -675,7 +675,7 @@ void DifferentialExpressionPlugin::computeDE()
     _tableItemModel->endModelBuilding();
 }
 
-void DifferentialExpressionPlugin::tableView_clicked(const QModelIndex& index)
+void DEMultiSpeciesPlugin::tableView_clicked(const QModelIndex& index)
 {
     if (_tableItemModel->status() != TableModel::Status::UpToDate)
         return;
@@ -690,11 +690,11 @@ void DifferentialExpressionPlugin::tableView_clicked(const QModelIndex& index)
     }
     catch (...) // catch everything
     {
-        qDebug() << "DifferentialExpressionPlugin::tableView_clicked -> something went wrong :(";
+        qDebug() << "DEMultiSpeciesPlugin::tableView_clicked -> something went wrong :(";
     }
 }
 
-void DifferentialExpressionPlugin::tableView_selectionChanged(const QItemSelection& selected, const QItemSelection& deselected)
+void DEMultiSpeciesPlugin::tableView_selectionChanged(const QItemSelection& selected, const QItemSelection& deselected)
 {
     tableView_clicked(selected.indexes().first());
 }
@@ -703,7 +703,7 @@ void DifferentialExpressionPlugin::tableView_selectionChanged(const QItemSelecti
  * Serialization
  ******************************************************************************/
 
-void DifferentialExpressionPlugin::fromVariantMap(const QVariantMap& variantMap)
+void DEMultiSpeciesPlugin::fromVariantMap(const QVariantMap& variantMap)
 {
     ViewPlugin::fromVariantMap(variantMap);
 
@@ -737,7 +737,7 @@ void DifferentialExpressionPlugin::fromVariantMap(const QVariantMap& variantMap)
     setPositionDataset(_points);
 }
 
-QVariantMap DifferentialExpressionPlugin::toVariantMap() const
+QVariantMap DEMultiSpeciesPlugin::toVariantMap() const
 {
     QVariantMap variantMap = ViewPlugin::toVariantMap();
 
@@ -764,33 +764,33 @@ QVariantMap DifferentialExpressionPlugin::toVariantMap() const
 // Factory
 // =============================================================================
 
-DifferentialExpressionPluginFactory::DifferentialExpressionPluginFactory()
+DEMultiSpeciesPluginFactory::DEMultiSpeciesPluginFactory()
 {
     setIconByName("table");
 }
 
-ViewPlugin* DifferentialExpressionPluginFactory::produce()
+ViewPlugin* DEMultiSpeciesPluginFactory::produce()
 {
-    return new DifferentialExpressionPlugin(this);
+    return new DEMultiSpeciesPlugin(this);
 }
 
-mv::DataTypes DifferentialExpressionPluginFactory::supportedDataTypes() const
+mv::DataTypes DEMultiSpeciesPluginFactory::supportedDataTypes() const
 {
     return { PointType } ;
 }
 
-mv::gui::PluginTriggerActions DifferentialExpressionPluginFactory::getPluginTriggerActions(const mv::Datasets& datasets) const
+mv::gui::PluginTriggerActions DEMultiSpeciesPluginFactory::getPluginTriggerActions(const mv::Datasets& datasets) const
 {
     PluginTriggerActions pluginTriggerActions;
 
-    const auto getPluginInstance = [this]() -> DifferentialExpressionPlugin* {
-        return dynamic_cast<DifferentialExpressionPlugin*>(plugins().requestViewPlugin(getKind()));
+    const auto getPluginInstance = [this]() -> DEMultiSpeciesPlugin* {
+        return dynamic_cast<DEMultiSpeciesPlugin*>(plugins().requestViewPlugin(getKind()));
         };
 
     const auto numberOfDatasets = datasets.count();
 
     if (numberOfDatasets >= 1 && PluginFactory::areAllDatasetsOfTheSameType(datasets, PointType)) {
-        auto pluginTriggerAction = new PluginTriggerAction(const_cast<DifferentialExpressionPluginFactory*>(this), this, "Differential expression", "Compute differential expressions between two selections", StyledIcon(), [this, getPluginInstance, datasets](PluginTriggerAction& pluginTriggerAction) -> void {
+        auto pluginTriggerAction = new PluginTriggerAction(const_cast<DEMultiSpeciesPluginFactory*>(this), this, "DE (Multiple species)", "Compute differential expressions between two selections for multiple species", StyledIcon(), [this, getPluginInstance, datasets](PluginTriggerAction& pluginTriggerAction) -> void {
             for (const auto& dataset : datasets)
                 getPluginInstance()->setPositionDataset( dataset );
             });

@@ -6,26 +6,16 @@
 
 using namespace mv::gui;
 
-class DifferentialExpressionPlugin;
+class DEMultiSpeciesPlugin;
 
 class LoadedDatasetsAction : public GroupAction
 {
     Q_OBJECT
-//protected:
-//
-//    class Widget : public WidgetActionWidget {
-//    public:
-//        Widget(QWidget* parent, LoadedDatasetsAction* currentDatasetAction, const std::int32_t& widgetFlags);
-//    };
-//
-//    QWidget* getWidget(QWidget* parent, const std::int32_t& widgetFlags) override {
-//        return new Widget(parent, this, widgetFlags);
-//    };
 
 public:
     Q_INVOKABLE LoadedDatasetsAction(QObject* parent, const QString& title);
 
-    void initialize(DifferentialExpressionPlugin* plugin);
+    void initialize(DEMultiSpeciesPlugin* plugin);
 
 public: // Serialization
 
@@ -42,7 +32,7 @@ public: // Serialization
     QVariantMap toVariantMap() const override;
 
 private:
-    DifferentialExpressionPlugin* _plugin;
+    DEMultiSpeciesPlugin*   _plugin = nullptr;
     DatasetPickerAction     _positionDatasetPickerAction;
 
     friend class mv::AbstractActionsManager;

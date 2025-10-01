@@ -1,5 +1,5 @@
 #include "LoadedDatasetsAction.h"
-#include "DifferentialExpressionPlugin.h"
+#include "DE-MultiSpeciesPlugin.h"
 
 #include "PointData/PointData.h"
 
@@ -24,7 +24,7 @@ LoadedDatasetsAction::LoadedDatasetsAction(QObject* parent, const QString& title
     });
 }
 
-void LoadedDatasetsAction::initialize(DifferentialExpressionPlugin* plugin)
+void LoadedDatasetsAction::initialize(DEMultiSpeciesPlugin* plugin)
 {
     Q_ASSERT(plugin != nullptr);
 
@@ -35,7 +35,6 @@ void LoadedDatasetsAction::initialize(DifferentialExpressionPlugin* plugin)
 
     connect(&_positionDatasetPickerAction, &DatasetPickerAction::datasetPicked, [this](Dataset<DatasetImpl> pickedDataset) -> void {
         _plugin->getPositionDataset() = pickedDataset;
-        //_scatterplotPlugin->positionDatasetChanged();
     });
 
     connect(&_plugin->getPositionDataset(), &Dataset<Points>::changed, this, [this](DatasetImpl* dataset) -> void {

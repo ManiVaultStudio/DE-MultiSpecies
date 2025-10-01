@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.22)
 
 # -----------------------------------------------------------------------------
-# Differential Expression Plugin
+# DE-MultiSpecies Plugin
 # -----------------------------------------------------------------------------
-PROJECT("DifferentialExpressionPlugin" 
+PROJECT("DE-MultiSpeciesPlugin" 
         LANGUAGES CXX)
 
 # -----------------------------------------------------------------------------
@@ -63,8 +63,8 @@ set(ACTIONS
     src/MultiTriggerAction.cpp
 )
 set(PLUGIN_SOURCES
-    src/DifferentialExpressionPlugin.h
-    src/DifferentialExpressionPlugin.cpp
+    src/DE-MultiSpeciesPlugin.h
+    src/DE-MultiSpeciesPlugin.cpp
 )
 
 set(PLUGIN_SOURCES_AUX

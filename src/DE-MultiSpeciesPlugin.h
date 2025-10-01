@@ -24,7 +24,7 @@ using namespace mv::util;
 
 class QLabel;
 
-class DifferentialExpressionPlugin : public ViewPlugin
+class DEMultiSpeciesPlugin : public ViewPlugin
 {
     Q_OBJECT
 
@@ -34,10 +34,10 @@ public:
      * Constructor
      * @param factory Pointer to the plugin factory
      */
-    DifferentialExpressionPlugin(const PluginFactory* factory);
+    DEMultiSpeciesPlugin(const PluginFactory* factory);
 
     /** Destructor */
-    ~DifferentialExpressionPlugin() override = default;
+    ~DEMultiSpeciesPlugin() override = default;
     
     /** This function is called by the core after the view plugin has been created */
     void init() override;
@@ -120,20 +120,20 @@ protected:
 // =============================================================================
 // Factory
 // =============================================================================
-class DifferentialExpressionPluginFactory : public ViewPluginFactory
+class DEMultiSpeciesPluginFactory : public ViewPluginFactory
 {
     Q_INTERFACES(mv::plugin::ViewPluginFactory mv::plugin::PluginFactory)
     Q_OBJECT
-    Q_PLUGIN_METADATA(IID   "nl.BioVault.DifferentialExpressionPlugin"
+    Q_PLUGIN_METADATA(IID   "nl.BioVault.DEMultiSpeciesPlugin"
                       FILE  "PluginInfo.json")
 
 public:
 
     /** Default constructor */
-    DifferentialExpressionPluginFactory();
+    DEMultiSpeciesPluginFactory();
 
     /** Destructor */
-    ~DifferentialExpressionPluginFactory() override {}
+    ~DEMultiSpeciesPluginFactory() override {}
     
     /** Creates an instance of the example view plugin */
     ViewPlugin* produce() override;
