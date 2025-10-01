@@ -2,6 +2,7 @@
 
 #include <Dataset.h>
 #include <ViewPlugin.h>
+#include <ClusterData/ClusterData.h>
 #include <PointData/DimensionPickerAction.h>
 #include <PointData/PointData.h>
 #include <widgets/DropWidget.h>
@@ -43,6 +44,9 @@ public:
     void init() override;
 
     void setPositionDataset(const mv::Dataset<Points>& newPoints);
+
+    void setClustersDataset(const mv::Dataset<Clusters>& newClusters);
+
     /** Invoked when the position points dataset changes */
     void positionDatasetChanged();
 
@@ -78,6 +82,7 @@ protected:
 
     DropWidget*                             _dropWidget;                /** Widget for drag and drop behavior */
     mv::Dataset<Points>                     _points;                    /** Points smart pointer */
+    mv::Dataset<Clusters>                   _clusters;                  /** Clusters smart pointer */
     QLabel*                                 _currentDatasetNameLabel;   /** Label that show the current dataset name */
    
     MultiTriggerAction                      _setSelectionTriggerActions;

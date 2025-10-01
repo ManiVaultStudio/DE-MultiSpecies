@@ -304,7 +304,7 @@ void DEMultiSpeciesPlugin::init()
         const auto datasetGuiName = dataset->getGuiName();
         const auto datasetId = dataset->getId();
         const auto dataType = dataset->getDataType();
-        const auto dataTypes = DataTypes({ PointType });
+        const auto dataTypes = DataTypes({ PointType, ClusterType });
 
         // Visually indicate if the dataset is of the wrong data type and thus cannot be dropped
         if (!dataTypes.contains(dataType)) {
@@ -318,7 +318,7 @@ void DEMultiSpeciesPlugin::init()
 
                 auto candidateDataset = mv::data().getDataset<Points>(datasetId);
 
-                const auto description = QString("Load %1 into example view").arg(datasetGuiName);
+                const auto description = QString("Load %1 into view").arg(datasetGuiName);
 
                 if (_points == candidateDataset) {
 
@@ -335,6 +335,29 @@ void DEMultiSpeciesPlugin::init()
 
                         });
                 }
+            }
+            else if (dataType == ClusterType) {
+
+                auto candidateDataset = mv::data().getDataset<Clusters>(datasetId);
+
+                const auto description = QString("Load %1 as clusters").arg(datasetGuiName);
+
+                if (_clusters == candidateDataset) {
+
+                    // Dataset cannot be dropped because it is already loaded
+                    dropRegions << new DropWidget::DropRegion(this, "Warning", "Data already loaded", "exclamation-circle", false);
+                    qDebug() << "ClusterDEMultiSpeciesPlugin: Warning: Data already loaded";
+                }
+                else {
+
+                    // Dataset can be dropped
+                    dropRegions << new DropWidget::DropRegion(this, "Clusters", description, "map-marker-alt", true, [this, candidateDataset]() {
+
+                        setClustersDataset(candidateDataset);
+
+                        });
+                }
+
             }
         }
 
@@ -444,12 +467,11 @@ void DEMultiSpeciesPlugin::init()
     connect(&_points, &Dataset<Points>::changed, this, &DEMultiSpeciesPlugin::positionDatasetChanged);
 }
 
-
 void DEMultiSpeciesPlugin::setPositionDataset(const mv::Dataset<Points>& newPoints)
 {
     if (!newPoints.isValid())
     {
-        qDebug() << "DEMultiSpeciesPlugin Warning: invalid dataset!";
+        qDebug() << "DEMultiSpeciesPlugin Warning: invalid points dataset!";
         return;
     }
 
@@ -460,7 +482,29 @@ void DEMultiSpeciesPlugin::setPositionDataset(const mv::Dataset<Points>& newPoin
     _currentSelectedDimension.setPointsDataset(_points);
 
     // Only show the drop indicator when nothing is loaded in the dataset reference
-    _dropWidget->setShowDropIndicator(false);
+    if (_points.isValid() && _clusters.isValid()) {
+        _currentDatasetNameLabel->setText(QString("Current datasets: %1 (%2)").arg(_points->getGuiName(), _clusters->getGuiName()));
+        _dropWidget->setShowDropIndicator(false);
+    }
+}
+
+void DEMultiSpeciesPlugin::setClustersDataset(const mv::Dataset<Clusters>& newClusters)
+{
+    if (!newClusters.isValid())
+    {
+        qDebug() << "DEMultiSpeciesPlugin Warning: invalid cluster dataset!";
+        return;
+    }
+
+    _clusters = newClusters;
+
+    // Update the current data model
+
+    // Only show the drop indicator when nothing is loaded in the dataset reference
+    if (_points.isValid() && _clusters.isValid()) {
+        _currentDatasetNameLabel->setText(QString("Current datasets: %1 (%2)").arg(_points->getGuiName(), _clusters->getGuiName()));
+        _dropWidget->setShowDropIndicator(false);
+    }
 }
 
 void DEMultiSpeciesPlugin::positionDatasetChanged()
