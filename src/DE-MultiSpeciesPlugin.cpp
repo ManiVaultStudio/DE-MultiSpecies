@@ -266,16 +266,7 @@ void DEMultiSpeciesPlugin::init()
         layout->addWidget(_buttonProgressBar);
     }
 
-    _totalTableColumns = 6;
-
-    _tableItemModel->startModelBuilding(_totalTableColumns, 0);
-    _tableItemModel->setHorizontalHeader(0, QString("ID"));
-    _tableItemModel->setHorizontalHeader(1, QString("DE"));
-    _tableItemModel->setHorizontalHeader(2, QString("Mean (Sel. 1)"));
-    _tableItemModel->setHorizontalHeader(3, QString("Mean (Sel. 2)"));
-    _tableItemModel->setHorizontalHeader(4, QString("Median (Sel. 1)"));
-    _tableItemModel->setHorizontalHeader(5, QString("Median (Sel. 2)"));
-    _tableItemModel->endModelBuilding();
+    updateTableModel();
 
     // Apply the layout
     getWidget().setLayout(layout);
@@ -467,6 +458,48 @@ void DEMultiSpeciesPlugin::init()
     connect(&_points, &Dataset<Points>::changed, this, &DEMultiSpeciesPlugin::positionDatasetChanged);
 }
 
+void DEMultiSpeciesPlugin::updateTableModel() {
+
+    _tableItemModel->invalidate();
+
+    int currentColumn = 0;
+
+    if (!_clusters.isValid()) {
+        _totalTableColumns = 6;
+
+        _tableItemModel->startModelBuilding(_totalTableColumns, 0);
+        _tableItemModel->setHorizontalHeader(currentColumn++, QString("ID"));
+        _tableItemModel->setHorizontalHeader(currentColumn++, QString("DE"));
+        _tableItemModel->setHorizontalHeader(currentColumn++, QString("Mean (Sel. 1)"));
+        _tableItemModel->setHorizontalHeader(currentColumn++, QString("Mean (Sel. 2)"));
+        _tableItemModel->setHorizontalHeader(currentColumn++, QString("Median (Sel. 1)"));
+        _tableItemModel->setHorizontalHeader(currentColumn++, QString("Median (Sel. 2)"));
+        _tableItemModel->endModelBuilding();
+
+        return;
+    }
+
+    const auto& clusterNames = _clusters->getClusterNames();
+    const auto numSpecies    = clusterNames.size();
+       
+    _totalTableColumns  = 1 + numSpecies * 3;
+
+    _tableItemModel->startModelBuilding(_totalTableColumns, 0);
+    _tableItemModel->setHorizontalHeader(currentColumn++, QString("ID"));
+
+    for (const auto& speciesName : clusterNames) {
+        const auto shortName = speciesName.first(3);
+        _tableItemModel->setHorizontalHeader(currentColumn++, QString("DE (%1)").arg(speciesName));
+        _tableItemModel->setHorizontalHeader(currentColumn++, QString("Avg 1 (%1)").arg(shortName));
+        _tableItemModel->setHorizontalHeader(currentColumn++, QString("Avg 2 (%1)").arg(shortName));
+        //_tableItemModel->setHorizontalHeader(currentColumn++, QString("Med 1 (%1)").arg(shortName));
+        //_tableItemModel->setHorizontalHeader(currentColumn++, QString("Med 2 (%1)").arg(shortName));
+    }
+
+    _tableItemModel->endModelBuilding();
+
+}
+
 void DEMultiSpeciesPlugin::setPositionDataset(const mv::Dataset<Points>& newPoints)
 {
     if (!newPoints.isValid())
@@ -476,6 +509,10 @@ void DEMultiSpeciesPlugin::setPositionDataset(const mv::Dataset<Points>& newPoin
     }
 
     _points = newPoints;
+    _clusters = {};
+
+    // Update the current data model
+    updateTableModel();
 
     // Update the current dataset name label and dimension picker
     _currentDatasetNameLabel->setText(QString("Current points dataset: %1").arg(_points->getGuiName()));
@@ -499,6 +536,7 @@ void DEMultiSpeciesPlugin::setClustersDataset(const mv::Dataset<Clusters>& newCl
     _clusters = newClusters;
 
     // Update the current data model
+    updateTableModel();
 
     // Only show the drop indicator when nothing is loaded in the dataset reference
     if (_points.isValid() && _clusters.isValid()) {

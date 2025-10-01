@@ -54,6 +54,11 @@ public: // Miscellaneous
     /** Get smart pointer to points dataset for point position */
     mv::Dataset<Points>& getPositionDataset() { return _points; }
 
+private:
+
+    // Depending on _clusters set the number of columns in the main table
+    void updateTableModel();
+
 public: // Serialization
 
     /**
