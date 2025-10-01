@@ -47,9 +47,6 @@ public:
 
     void setClustersDataset(const mv::Dataset<Clusters>& newClusters);
 
-    /** Invoked when the position points dataset changes */
-    void positionDatasetChanged();
-
 public: // Miscellaneous
     /** Get smart pointer to points dataset for point position */
     mv::Dataset<Points>& getPositionDataset() { return _points; }
@@ -58,6 +55,9 @@ private:
 
     // Depending on _clusters set the number of columns in the main table
     void updateTableModel();
+
+    // Calculate min, max and rescale values
+    void computeMetaData();
 
 public: // Serialization
 
@@ -72,7 +72,6 @@ public: // Serialization
     * @return Variant map representation of the plugin
     */
     QVariantMap toVariantMap() const override;
- 
 
 protected slots:
     void writeToCSV() const;
@@ -80,7 +79,6 @@ protected slots:
     
     void tableView_clicked(const QModelIndex& index);
     void tableView_selectionChanged(const QItemSelection& selected, const QItemSelection& deselected);
-
 
 protected:
     using QLabelArray2 = std::array<QLabel, MultiTriggerAction::Size>;
@@ -112,14 +110,14 @@ protected:
     QVector<WidgetAction*>                  _serializedActions;
     QByteArray                              _headerState;
 
-    std::vector<QTableWidgetItem*>          _geneTableItems;
-    std::vector<QTableWidgetItem*>          _diffTableItems;
+    std::vector<QTableWidgetItem*>          _geneTableItems = {};
+    std::vector<QTableWidgetItem*>          _diffTableItems = {};
 
-    std::vector<float>                      _minValues;
-    std::vector<float>                      _rescaleValues;
+    std::vector<std::vector<float>>         _minValues = {};            // min values for each dimension for each species (cluster)
+    std::vector<std::vector<float>>         _rescaleValues = {};        // rescale values for each dimension for each species (cluster)
 
-    std::vector<uint32_t>                   _selectionA;
-    std::vector<uint32_t>                   _selectionB;
+    std::vector<uint32_t>                   _selectionA = {};
+    std::vector<uint32_t>                   _selectionB = {};
 
     // TEMP: toggle for normalization within the loaded dataset
     ToggleAction                            _normAction; // min max normalization
