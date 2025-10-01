@@ -290,7 +290,7 @@ void DEMultiSpeciesPlugin::init()
     _dropWidget = new DropWidget(_currentDatasetNameLabel);
 
     // Set the drop indicator widget (the widget that indicates that the view is eligible for data dropping)
-    _dropWidget->setDropIndicatorWidget(new DropWidget::DropIndicatorWidget(&getWidget(), "No data loaded", "Drag an item from the data hierarchy and drop it here to visualize data..."));
+    _dropWidget->setDropIndicatorWidget(new DropWidget::DropIndicatorWidget(&getWidget(), "Drag an item points and clusters", ""));
 
     // Initialize the drop regions
     _dropWidget->initialize([this](const QMimeData* mimeData) -> DropWidget::DropRegions {
@@ -322,45 +322,29 @@ void DEMultiSpeciesPlugin::init()
             // Accept points datasets drag and drop
             if (dataType == PointType) {
 
-                auto candidateDataset = mv::data().getDataset<Points>(datasetId);
+                const auto candidateDataset = mv::data().getDataset<Points>(datasetId);
 
-                const auto description = QString("Load %1 into view").arg(datasetGuiName);
-
-                if (_points == candidateDataset) {
-
-                    // Dataset cannot be dropped because it is already loaded
+                if (_points == candidateDataset) { // Dataset cannot be dropped because it is already loaded
                     dropRegions << new DropWidget::DropRegion(this, "Warning", "Data already loaded", "exclamation-circle", false);
                     qDebug() << "ClusterDEMultiSpeciesPlugin: Warning: Data already loaded";
                 }
-                else {
-
-                    // Dataset can be dropped
-                    dropRegions << new DropWidget::DropRegion(this, "Points", description, "map-marker-alt", true, [this, candidateDataset]() {
-
+                else { // Dataset can be dropped
+                    dropRegions << new DropWidget::DropRegion(this, "Points", QString("Load %1 as points").arg(datasetGuiName), "map-marker-alt", true, [this, candidateDataset]() {
                         setPositionDataset(candidateDataset);
-
                         });
                 }
             }
             else if (dataType == ClusterType) {
 
-                auto candidateDataset = mv::data().getDataset<Clusters>(datasetId);
+                const auto candidateDataset = mv::data().getDataset<Clusters>(datasetId);
 
-                const auto description = QString("Load %1 as clusters").arg(datasetGuiName);
-
-                if (_clusters == candidateDataset) {
-
-                    // Dataset cannot be dropped because it is already loaded
+                if (_clusters == candidateDataset) { // Dataset cannot be dropped because it is already loaded
                     dropRegions << new DropWidget::DropRegion(this, "Warning", "Data already loaded", "exclamation-circle", false);
                     qDebug() << "ClusterDEMultiSpeciesPlugin: Warning: Data already loaded";
                 }
-                else {
-
-                    // Dataset can be dropped
-                    dropRegions << new DropWidget::DropRegion(this, "Clusters", description, "map-marker-alt", true, [this, candidateDataset]() {
-
+                else { // Dataset can be dropped
+                    dropRegions << new DropWidget::DropRegion(this, "Clusters", QString("Load %1 as clusters").arg(datasetGuiName), "map-marker-alt", true, [this, candidateDataset]() {
                         setClustersDataset(candidateDataset);
-
                         });
                 }
 
@@ -513,11 +497,8 @@ void DEMultiSpeciesPlugin::setPositionDataset(const mv::Dataset<Points>& newPoin
     _points = newPoints;
     _clusters = {};
 
-    // Update the current data model
+    // Update the current data model and dimension picker
     updateTableModel();
-
-    // Update the current dataset name label and dimension picker
-    _currentDatasetNameLabel->setText(QString("Current points dataset: %1").arg(_points->getGuiName()));
     _currentSelectedDimension.setPointsDataset(_points);
 
     // Only show the drop indicator when nothing is loaded in the dataset reference
