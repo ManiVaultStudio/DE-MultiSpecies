@@ -59,6 +59,9 @@ private:
     // Calculate min, max and rescale values
     void computeMetaData();
 
+    // if _useSelMapForDE == 2: map IDs from clusters to points via selection map, otherwise use cluster IDs
+    const std::vector<unsigned int>& getSpeciesIDs(const size_t species);
+
 public: // Serialization
 
     /**
@@ -119,9 +122,10 @@ protected:
     std::vector<uint32_t>                   _selectionA = {};
     std::vector<uint32_t>                   _selectionB = {};
 
-    // TEMP: toggle for normalization within the loaded dataset
-    ToggleAction                            _normAction; // min max normalization
+    ToggleAction                            _normAction;                // min max normalization
     bool                                    _norm = false;
+    int                                     _useSelMapForDE = 0;        // 0: not init, 1: dont, 2: do
+    std::vector<unsigned int>               _mappedSpeciesIDs = {};     // if _useSelMapForDE == 2: map IDs from clusters to points via selection map, otherwise use cluster IDs
 };
 
 

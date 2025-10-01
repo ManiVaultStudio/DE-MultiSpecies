@@ -16,6 +16,7 @@
 #include <cmath>
 #include <limits>
 #include <iterator>
+#include <numeric>
 #include <vector>
 
 Q_PLUGIN_METADATA(IID "nl.BioVault.DEMultiSpeciesPlugin")
@@ -406,10 +407,7 @@ void DEMultiSpeciesPlugin::init()
 
             // Check if the selection mapping makes sense
             const auto [selectionMapping, numPointsTarget] = getSelectionMappingOtherToCurrent(otherData, _points);
-            const bool useOtherSelection =
-                selectionMapping != nullptr &&
-                numPointsTarget == _points->getNumPoints() &&
-                checkSurjectiveMapping(selectionMapping, numPointsTarget);
+            const bool useOtherSelection = isSurjectiveMappingValid(selectionMapping, numPointsTarget, _points);
 
             otherData->getSelection<Points>()->indices = useOtherSelection ? _additionalSettingsDialog.getSelection(selectionName) : std::vector<uint32_t>{};
             
@@ -496,6 +494,7 @@ void DEMultiSpeciesPlugin::setPositionDataset(const mv::Dataset<Points>& newPoin
 
     _points = newPoints;
     _clusters = {};
+    _useSelMapForDE = 0;
 
     // Update the current data model and dimension picker
     updateTableModel();
@@ -517,6 +516,31 @@ void DEMultiSpeciesPlugin::setClustersDataset(const mv::Dataset<Clusters>& newCl
         return;
     }
 
+    // We accept these cases: 
+    // 1. the number of points in clusters equals number of points
+    // 2. there is a selection map between
+
+    const size_t numPoints      = _points->getNumPoints();
+    const size_t numClusterIDs  = std::accumulate(
+        _clusters->getClusters().begin(), _clusters->getClusters().end(), 
+        0ULL,
+        [](auto sum, const auto& v) { return sum + v.getIndices().size(); }
+    );
+
+    if (numPoints == numClusterIDs) {
+        _useSelMapForDE = 1;
+        qDebug() << "DEMultiSpeciesPlugin: Points and clusters data cover same number of IDs";
+    }
+    else if (const auto otherData = _additionalSettingsDialog.getSelectionMappingSourcePicker().getCurrentDataset<Points>(); otherData.isValid()) {
+        _useSelMapForDE = 2;
+        qDebug() << "DEMultiSpeciesPlugin: Use selection mapping from " << otherData->getGuiName() << " to connect points and clusters";
+    }
+    else {
+        qDebug() << "DEMultiSpeciesPlugin Warning: Points and clusters do not match. Maybe pick a selection mapping data set?";
+        _useSelMapForDE = 0;
+        return;
+    }
+
     _clusters = newClusters;
 
     // Update the current data model
@@ -528,6 +552,41 @@ void DEMultiSpeciesPlugin::setClustersDataset(const mv::Dataset<Clusters>& newCl
         _dropWidget->setShowDropIndicator(false);
         computeMetaData();
     }
+}
+
+const std::vector<unsigned int>& DEMultiSpeciesPlugin::getSpeciesIDs(const size_t species)
+{
+    _mappedSpeciesIDs.clear();
+
+    if (_useSelMapForDE == 2) { // Map from species to points
+        const auto otherData = _additionalSettingsDialog.getSelectionMappingSourcePicker().getCurrentDataset<Points>();
+        const auto [selectionMapping, numPointsTarget] = getSelectionMappingOtherToCurrent(otherData, _points);
+        const bool validSelectionMap = isSurjectiveMappingValid(selectionMapping, numPointsTarget, _points);
+
+        if (!validSelectionMap)
+            qDebug() << "ClusterDEMultiSpeciesPlugin: Invalid selectin map - things are about to break";
+
+        const std::map<std::uint32_t, std::vector<std::uint32_t>>& mapSpeciesToPoints = selectionMapping->getMapping().getMap();
+
+        const auto& speciesIndices = _clusters->getClusters()[species].getIndices();
+        for (const std::uint32_t speciesID : speciesIndices) {
+
+            if (!mapSpeciesToPoints.contains(speciesID))
+                continue;
+
+            const auto& mappedIDs = mapSpeciesToPoints.at(speciesID);
+            _mappedSpeciesIDs.insert(_mappedSpeciesIDs.end(), mappedIDs.begin(), mappedIDs.end());
+        }
+
+        local::sortAndUnique(_mappedSpeciesIDs);
+
+        return _mappedSpeciesIDs;
+    }
+
+    auto& clusterIDs = _clusters->getClusters()[species].getIndices();
+    local::sortAndUnique(clusterIDs);
+
+    return clusterIDs;
 }
 
 void DEMultiSpeciesPlugin::computeMetaData()
@@ -547,7 +606,7 @@ void DEMultiSpeciesPlugin::computeMetaData()
     
     int species = 0;
 
-    auto computeMinAndRescale = [this, &species](auto globalRowID, auto localRowID, auto column, auto value) -> void
+    auto computeMinAndRescale = [this, &species](auto globalRowID, auto localRowID, auto column, auto value) -> void 
         {
             if (value > _rescaleValues[species][column])
                 _rescaleValues[species][column] = value;
@@ -557,9 +616,9 @@ void DEMultiSpeciesPlugin::computeMetaData()
         };
 
     for (; species < numSpecies; species++) {
-        const std::vector<unsigned int>& speciesID = speciesClusters[species].getIndices();
+        const std::vector<unsigned int>& speciesIDs = getSpeciesIDs(species);
 
-        local::visitElements(_points, speciesID, computeMinAndRescale);
+        local::visitElements(_points, speciesIDs, computeMinAndRescale);
 
         // Compute rescale values
 #pragma omp parallel for schedule(dynamic,1)
@@ -645,27 +704,25 @@ void DEMultiSpeciesPlugin::computeDE()
         return (avgs[dim] - mins[dim]) * norm[dim];
         };
 
+    auto intersection = [](const std::vector<unsigned int>& a, const std::vector<unsigned int>& b) -> std::vector<unsigned int> {
+        std::vector<unsigned int> intersection;
+        std::set_intersection(
+            a.cbegin(), a.cend(),
+            b.cbegin(), b.cend(),
+            std::back_inserter(intersection)
+        );
+        return intersection;
+        };
+
     for (size_t species = 0; species < numSpecies; species++) {
-        std::vector<unsigned int>& speciesID = speciesClusters[species].getIndices();
-        local::sortAndUnique(speciesID);
+        const std::vector<unsigned int>& speciesID = getSpeciesIDs(species);
 
         auto& meansA_species = meansA[species];
         auto& meansB_species = meansB[species];
 
-        // We know that _selectionA and _selectionB are sorted, it's done above
-        std::vector<unsigned int> selA_species;
-        std::vector<unsigned int> selB_species;
-        std::set_intersection(
-            _selectionA.begin(), _selectionA.end(), 
-            speciesID.begin(), speciesID.end(),
-            std::back_inserter(selA_species)
-        );
-
-        std::set_intersection(
-            _selectionB.begin(), _selectionB.end(),
-            speciesID.begin(), speciesID.end(),
-            std::back_inserter(selB_species)
-        );
+        // We know that _selectionA, _selectionB and speciesID are sorted, it's done above
+        const std::vector<unsigned int> selA_species = intersection(_selectionA, speciesID);
+        const std::vector<unsigned int> selB_species = intersection(_selectionB, speciesID);
 
         computeAvg(selA_species, meansA_species);
         computeAvg(selB_species, meansB_species);
@@ -693,20 +750,20 @@ void DEMultiSpeciesPlugin::computeDE()
 
     _tableItemModel->startModelBuilding(_totalTableColumns, numDimensions);
 #pragma omp  parallel for schedule(dynamic,1)
-        for (std::ptrdiff_t dimension = 0; dimension < numDimensions; ++dimension)
-        {
-            std::vector<QVariant> dataVector = { dimensionNames[dimension] };
-            dataVector.reserve(_totalTableColumns);
+    for (std::ptrdiff_t dimension = 0; dimension < numDimensions; ++dimension)
+    {
+        std::vector<QVariant> dataVector = { dimensionNames[dimension] };
+        dataVector.reserve(_totalTableColumns);
             
-            for (size_t species = 0; species < numSpecies; species++) {
-                dataVector.push_back(local::fround(meansA[species][dimension] - meansB[species][dimension], 3));    // Differential expression
-                dataVector.push_back(local::fround(meansA[species][dimension], 3));
-                dataVector.push_back(local::fround(meansB[species][dimension], 3));
-            }
+        for (size_t species = 0; species < numSpecies; species++) {
+            dataVector.push_back(local::fround(meansA[species][dimension] - meansB[species][dimension], 3));    // Differential expression
+            dataVector.push_back(local::fround(meansA[species][dimension], 3));
+            dataVector.push_back(local::fround(meansB[species][dimension], 3));
+        }
 
-            assert(dataVector.size() == _totalTableColumns);
+        assert(dataVector.size() == _totalTableColumns);
 
-            _tableItemModel->setRow(dimension, dataVector, Qt::Unchecked, true);
+        _tableItemModel->setRow(dimension, dataVector, Qt::Unchecked, true);
     }
 
     _tableItemModel->endModelBuilding();
