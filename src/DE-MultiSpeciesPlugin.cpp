@@ -869,7 +869,7 @@ DEMultiSpeciesPluginFactory::DEMultiSpeciesPluginFactory()
         if (insert_md_into_json(tutorial_file)) {
 
             if (auto tutorial_json = readJSON(tutorial_file)) {
-                mv::help().addTutorial(new LearningCenterTutorial(tutorial_json.value()["tutorials"].toVariant().toMap()));
+                mv::help().addTutorial(new LearningCenterTutorial(tutorial_json.value()["tutorials"].toArray().first().toObject().toVariantMap()));
             }
             
         }
