@@ -522,7 +522,7 @@ void DEMultiSpeciesPlugin::setClustersDataset(const mv::Dataset<Clusters>& newCl
 
     const size_t numPoints      = _points->getNumPoints();
     const size_t numClusterIDs  = std::accumulate(
-        _clusters->getClusters().begin(), _clusters->getClusters().end(), 
+        newClusters->getClusters().begin(), newClusters->getClusters().end(),
         0ULL,
         [](auto sum, const auto& v) { return sum + v.getIndices().size(); }
     );
