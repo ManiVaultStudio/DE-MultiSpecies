@@ -438,7 +438,7 @@ void DEMultiSpeciesPlugin::init()
         });
 
     QGridLayout* selectionLayout = new QGridLayout();
-    for (std::size_t i = 0; i < _selectedCellsLabel.size(); ++i)
+    for (uint8_t i = 0; i < _selectedCellsLabel.size(); ++i)
     {
         selectionLayout->addWidget(_setSelectionTriggerActions.getTriggerAction(i)->createWidget(&mainWidget), 0, i);
         selectionLayout->addWidget(_highlightSelectionTriggerActions.getTriggerAction(i)->createWidget(&mainWidget), 1, i);
