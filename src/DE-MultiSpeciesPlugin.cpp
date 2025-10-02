@@ -1,10 +1,12 @@
 #include "DE-MultiSpeciesPlugin.h"
 
 #include <DatasetsMimeData.h>
+#include <util/LearningCenterTutorial.h>
 
 #include <QDebug>
 #include <QFile>
 #include <QFileDialog>
+#include <QJsonArray>
 #include <QMimeData>
 #include <QPushButton>
 
@@ -863,16 +865,13 @@ DEMultiSpeciesPluginFactory::DEMultiSpeciesPluginFactory()
 {
     setIconByName("table");
 
-    const auto tutorial_files = list_tutorial_files("tutorials/DEMultiSpecies");
-
-    for (const auto& tutorial_file : tutorial_files) {
+    for (const auto& tutorial_file : list_tutorial_files("tutorials/DEMultiSpecies")) {
         if (insert_md_into_json(tutorial_file)) {
-            // convert local file path to Qt URL to trick ManiVault into "downloading" the tutorials
-            const QUrl fileUrl = QUrl::fromLocalFile(tutorial_file);
-            const QString urlString = fileUrl.toString();
 
-            // register tutorial with the core
-            getTutorialsDsnsAction().addString(urlString);
+            if (auto tutorial_json = readJSON(tutorial_file)) {
+                mv::help().addTutorial(new LearningCenterTutorial(tutorial_json.value()["tutorials"].toVariant().toMap()));
+            }
+            
         }
     }
 }

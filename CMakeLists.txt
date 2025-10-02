@@ -85,23 +85,23 @@ set(PLUGIN_SOURCES_AUX
 )
 
 set(DE_MULTISPECIESPLUGIN_TUTORIALS
-    ${PROJECT_SOURCE_DIR}/tutorials/Drill-in-demo-turotial.json
-    ${PROJECT_SOURCE_DIR}/tutorials/Drill-in-demo-turotial.md
+    tutorials/Drill-in-demo-turotial.json
+    tutorials/Drill-in-demo-turotial.md
 )
 
 set(DE_MULTISPECIESPLUGIN_TUTORIAL_ASSETS
-    ${PROJECT_SOURCE_DIR}/tutorials/assets/DE.gif
-    ${PROJECT_SOURCE_DIR}/tutorials/assets/Recompute.gif
-    ${PROJECT_SOURCE_DIR}/tutorials/assets/Refine.gif
-    ${PROJECT_SOURCE_DIR}/tutorials/assets/Scatterplot_toolbar.png
-    ${PROJECT_SOURCE_DIR}/tutorials/assets/Scatterplot_toolbar_color.png
-    ${PROJECT_SOURCE_DIR}/tutorials/assets/Scatterplot_toolbar_expanded.png
-    ${PROJECT_SOURCE_DIR}/tutorials/assets/Scatterplot_toolbar_plot.png
-    ${PROJECT_SOURCE_DIR}/tutorials/assets/Selection.gif
-    ${PROJECT_SOURCE_DIR}/tutorials/assets/Sparse_data_access.png
-    ${PROJECT_SOURCE_DIR}/tutorials/assets/Startup.png
-    ${PROJECT_SOURCE_DIR}/tutorials/assets/Startup_numbered.png
-    ${PROJECT_SOURCE_DIR}/tutorials/assets/Zooming.gif
+    tutorials/assets/DE.gif
+    tutorials/assets/Recompute.gif
+    tutorials/assets/Refine.gif
+    tutorials/assets/Scatterplot_toolbar.png
+    tutorials/assets/Scatterplot_toolbar_color.png
+    tutorials/assets/Scatterplot_toolbar_expanded.png
+    tutorials/assets/Scatterplot_toolbar_plot.png
+    tutorials/assets/Selection.gif
+    tutorials/assets/Sparse_data_access.png
+    tutorials/assets/Startup.png
+    tutorials/assets/Startup_numbered.png
+    tutorials/assets/Zooming.gif
 )
 
 source_group(Plugin FILES ${PLUGIN_SOURCES} ${PLUGIN_SOURCES_AUX})
@@ -172,7 +172,7 @@ install(FILES
 )
 
 install(FILES 
-    ${DE_MULTISPECIESPLUGIN_TUTORIALS_ASSETS}
+    ${DE_MULTISPECIESPLUGIN_TUTORIAL_ASSETS}
     DESTINATION tutorials/DEMultiSpecies/assets
     COMPONENT DE-MULTISPECIESPLUGIN-TUTORIAL-ASSETS
 )

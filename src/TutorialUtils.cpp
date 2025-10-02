@@ -78,6 +78,26 @@ QString convert_md_to_html(const QString& path_md_in) {
     return html.value();
 }
 
+std::optional<QJsonObject> readJSON(const QString& path_json) {
+    QFile file(path_json);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "Failed to open file for reading:" << file.errorString();
+        return std::nullopt;
+    }
+
+    QByteArray data = file.readAll();
+    file.close();
+
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
+    if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
+        qWarning() << "Failed to parse JSON:" << parseError.errorString();
+        return std::nullopt;
+    }
+
+    return doc.object();
+}
+
 bool replace_json_entry(const QString& path_json, const QString& array_name, const QString& entry_name, const QString& new_text) {
     QFile file(path_json);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
