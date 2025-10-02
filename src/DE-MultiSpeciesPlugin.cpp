@@ -10,6 +10,7 @@
 
 #include "AdditionalSettings.h"
 #include "WordWrapHeaderView.h"
+#include "TutorialUtils.h"
 
 #include <algorithm>
 #include <cassert>
@@ -861,6 +862,19 @@ QVariantMap DEMultiSpeciesPlugin::toVariantMap() const
 DEMultiSpeciesPluginFactory::DEMultiSpeciesPluginFactory()
 {
     setIconByName("table");
+
+    const auto tutorial_files = list_tutorial_files("tutorials/DEMultiSpecies");
+
+    for (const auto& tutorial_file : tutorial_files) {
+        if (insert_md_into_json(tutorial_file)) {
+            // convert local file path to Qt URL to trick ManiVault into "downloading" the tutorials
+            const QUrl fileUrl = QUrl::fromLocalFile(tutorial_file);
+            const QString urlString = fileUrl.toString();
+
+            // register tutorial with the core
+            getTutorialsDsnsAction().addString(urlString);
+        }
+    }
 }
 
 ViewPlugin* DEMultiSpeciesPluginFactory::produce()

@@ -1,0 +1,16 @@
+{
+  "tutorials": [
+    {
+      "title": "RNA-seq re-embedding tutorial",
+      "tags": [ "RNA-seq", "Differential expression", "HSNE", "UMAP" ],
+      "date": "2025-010-02 12:00:00 +0000",
+      "icon": "dna",
+      "summary": "Explains how to use the RNA-seq re-embedding project.",
+      "fullpost": "This entry will be replaced with the contents of notebook_setup.md when starting the ManiVault application",
+      "url": "This entry will be replaced with absolute path to the asset directory when starting the ManiVault application",
+      "minimum-version-major": 1,
+      "minimum-version-minor": 4,
+      "plugins": [ "Data hierarchy", "Data properties" ]
+    }
+  ]
+}
