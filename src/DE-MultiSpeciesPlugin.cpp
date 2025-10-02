@@ -470,7 +470,7 @@ void DEMultiSpeciesPlugin::updateTableModel() {
     const auto& clusterNames = _clusters->getClusterNames();
     const auto numSpecies    = clusterNames.size();
        
-    _totalTableColumns  = 1 + numSpecies * 3;
+    _totalTableColumns  = static_cast<int>(1 + numSpecies * 3);
 
     _tableItemModel->startModelBuilding(_totalTableColumns, 0);
     _tableItemModel->setHorizontalHeader(currentColumn++, QString("ID"));
