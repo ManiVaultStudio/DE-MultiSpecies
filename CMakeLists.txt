@@ -85,8 +85,8 @@ set(PLUGIN_SOURCES_AUX
 )
 
 set(DE_MULTISPECIESPLUGIN_TUTORIALS
-    tutorials/Drill-in-demo-turotial.json
-    tutorials/Drill-in-demo-turotial.md
+    tutorials/Drill_in_demo_turotial.json
+    tutorials/Drill_in_demo_turotial.md
 )
 
 set(DE_MULTISPECIESPLUGIN_TUTORIAL_ASSETS
