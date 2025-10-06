@@ -539,7 +539,7 @@ void DEMultiSpeciesPlugin::setClustersDataset(const mv::Dataset<Clusters>& newCl
         qDebug() << "DEMultiSpeciesPlugin: Use selection mapping from " << otherData->getGuiName() << " to connect points and clusters";
     }
     else {
-        qDebug() << "DEMultiSpeciesPlugin Warning: Points and clusters do not match. Maybe pick a selection mapping data set?";
+        qDebug() << "DEMultiSpeciesPlugin Warning: Points and clusters do not match. Maybe pick a selection mapping data set first and then add the cluster data again.";
         _useSelMapForDE = 0;
         return;
     }
