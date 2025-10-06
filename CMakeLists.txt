@@ -14,20 +14,31 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DWIN32 /EHsc /MP /permissive- /Zc:__cplusplus")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DWIN32 /W3 /EHsc /MP /permissive- /Zc:__cplusplus")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")    
     set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MD")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD")
 endif()
+
+include(get_cpm)
 
 # -----------------------------------------------------------------------------
 # Dependencies
 # -----------------------------------------------------------------------------
 find_package(Qt6 COMPONENTS Widgets WebEngineWidgets REQUIRED)
 
-find_package(ManiVault COMPONENTS Core PointData CONFIG QUIET)
+find_package(ManiVault COMPONENTS Core PointData ClusterData CONFIG QUIET)
 
 find_package(OpenMP REQUIRED)
+
+CPMAddPackage(
+    NAME                md4qt
+    GIT_REPOSITORY      https://invent.kde.org/libraries/md4qt.git
+    GIT_TAG             a777b56c14679b94d48261ec465cf0e97650daad
+    VERSION             4.2.1
+    DOWNLOAD_ONLY       YES
+    EXCLUDE_FROM_ALL    YES
+)
 
 # -----------------------------------------------------------------------------
 # Source files
@@ -54,6 +65,8 @@ set(UTIL
     src/ProgressManager.cpp
     src/AdditionalSettings.h
     src/AdditionalSettings.cpp
+    src/TutorialUtils.h
+    src/TutorialUtils.cpp
 )
 
 set(ACTIONS
@@ -71,11 +84,32 @@ set(PLUGIN_SOURCES_AUX
     PluginInfo.json
 )
 
+set(DE_MULTISPECIESPLUGIN_TUTORIALS
+    tutorials/Drill_in_demo_turotial.json
+    tutorials/Drill_in_demo_turotial.md
+)
+
+set(DE_MULTISPECIESPLUGIN_TUTORIAL_ASSETS
+    tutorials/assets/DE.gif
+    tutorials/assets/Recompute.gif
+    tutorials/assets/Refine.gif
+    tutorials/assets/Scatterplot_toolbar.png
+    tutorials/assets/Scatterplot_toolbar_color.png
+    tutorials/assets/Scatterplot_toolbar_expanded.png
+    tutorials/assets/Scatterplot_toolbar_plot.png
+    tutorials/assets/Selection.gif
+    tutorials/assets/Sparse_data_access.png
+    tutorials/assets/Startup.png
+    tutorials/assets/Startup_numbered.png
+    tutorials/assets/Zooming.gif
+)
+
 source_group(Plugin FILES ${PLUGIN_SOURCES} ${PLUGIN_SOURCES_AUX})
 source_group(Model FILES ${MODEL})
 source_group(Actions FILES ${ACTIONS})
 source_group(Widget FILES ${WIDGETS})
 source_group(Util FILES ${UTIL})
+source_group(Tutorials FILES ${DE_MULTISPECIESPLUGIN_TUTORIALS})
 
 # -----------------------------------------------------------------------------
 # CMake Target
@@ -88,6 +122,8 @@ add_library(${PROJECT_NAME} SHARED ${PLUGIN_SOURCES} ${PLUGIN_SOURCES_AUX} ${UTI
 # -----------------------------------------------------------------------------
 # Include ManiVault headers, including system data plugins
 target_include_directories(${PROJECT_NAME} PRIVATE "${ManiVault_INCLUDE_DIR}")
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${md4qt_SOURCE_DIR})
 
 # -----------------------------------------------------------------------------
 # Target properties
@@ -108,6 +144,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::WebEngineWidgets)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ManiVault::Core)
 target_link_libraries(${PROJECT_NAME} PRIVATE ManiVault::PointData)
+target_link_libraries(${PROJECT_NAME} PRIVATE ManiVault::ClusterData)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
 
@@ -125,6 +162,31 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         --install ${CMAKE_CURRENT_BINARY_DIR}
         --config $<CONFIGURATION>
         --component PLUGINS
+        --prefix ${ManiVault_INSTALL_DIR}/$<CONFIGURATION>
+)
+
+install(FILES 
+    ${DE_MULTISPECIESPLUGIN_TUTORIALS}
+    DESTINATION tutorials/DEMultiSpecies 
+    COMPONENT DE-MULTISPECIESPLUGIN-TUTORIALS
+)
+
+install(FILES 
+    ${DE_MULTISPECIESPLUGIN_TUTORIAL_ASSETS}
+    DESTINATION tutorials/DEMultiSpecies/assets
+    COMPONENT DE-MULTISPECIESPLUGIN-TUTORIAL-ASSETS
+)
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND "${CMAKE_COMMAND}"
+        --install ${CMAKE_CURRENT_BINARY_DIR}
+        --config $<CONFIGURATION>
+        --component DE-MULTISPECIESPLUGIN-TUTORIALS
+        --prefix ${ManiVault_INSTALL_DIR}/$<CONFIGURATION>
+    COMMAND "${CMAKE_COMMAND}"
+        --install ${CMAKE_CURRENT_BINARY_DIR}
+        --config $<CONFIGURATION>
+        --component DE-MULTISPECIESPLUGIN-TUTORIAL-ASSETS
         --prefix ${ManiVault_INSTALL_DIR}/$<CONFIGURATION>
 )
 

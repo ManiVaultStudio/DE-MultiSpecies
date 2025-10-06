@@ -63,6 +63,12 @@ bool checkSurjectiveMapping(const mv::LinkedData* linkedData, const std::uint32_
 // checks whether the mapping covers all elements in the target
 bool checkSelectionMapping(const mv::Dataset<Points>& other, const mv::Dataset<Points>& current);
 
+inline bool isSurjectiveMappingValid(const mv::LinkedData* selectionMapping, unsigned int numPointsTarget, const mv::Dataset<Points>& testData) {
+    return selectionMapping != nullptr &&
+        numPointsTarget == testData->getNumPoints() &&
+        checkSurjectiveMapping(selectionMapping, numPointsTarget);
+}
+
 // 
 // AdditionalSettingsDialog
 //

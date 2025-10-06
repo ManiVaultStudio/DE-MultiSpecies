@@ -1,20 +1,26 @@
 #include "DE-MultiSpeciesPlugin.h"
 
 #include <DatasetsMimeData.h>
+#include <util/LearningCenterTutorial.h>
 
 #include <QDebug>
 #include <QFile>
 #include <QFileDialog>
+#include <QJsonArray>
 #include <QMimeData>
 #include <QPushButton>
 
 #include "AdditionalSettings.h"
 #include "WordWrapHeaderView.h"
+#include "TutorialUtils.h"
 
 #include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <limits>
+#include <iterator>
+#include <numeric>
+#include <vector>
 
 Q_PLUGIN_METADATA(IID "nl.BioVault.DEMultiSpeciesPlugin")
 
@@ -42,6 +48,19 @@ namespace local
         assert(!std::numeric_limits<T>::is_integer); // this function should not be called on integer types
         return static_cast<float>(floor(n * pow(10., d) + 0.5) / pow(10., d));
     }
+    template <typename T>
+    void resizeNestedVec(std::vector<std::vector<T>>& vecOfVecs, size_t outterSize, size_t innerSize, T val) {
+        vecOfVecs.resize(outterSize);
+        for (std::vector<T>& innerVec : vecOfVecs) {
+            innerVec.resize(innerSize, val);
+        }
+    }
+    template <typename T>
+    void sortAndUnique(std::vector<T>& selection) {
+        std::sort(selection.begin(), selection.end());
+        const auto last = std::unique(selection.begin(), selection.end());
+        selection.erase(last, selection.end());
+        };
     template<typename T>
     bool is_exact_type(const QVariant& variant)
     {
@@ -266,16 +285,7 @@ void DEMultiSpeciesPlugin::init()
         layout->addWidget(_buttonProgressBar);
     }
 
-    _totalTableColumns = 6;
-
-    _tableItemModel->startModelBuilding(_totalTableColumns, 0);
-    _tableItemModel->setHorizontalHeader(0, QString("ID"));
-    _tableItemModel->setHorizontalHeader(1, QString("DE"));
-    _tableItemModel->setHorizontalHeader(2, QString("Mean (Sel. 1)"));
-    _tableItemModel->setHorizontalHeader(3, QString("Mean (Sel. 2)"));
-    _tableItemModel->setHorizontalHeader(4, QString("Median (Sel. 1)"));
-    _tableItemModel->setHorizontalHeader(5, QString("Median (Sel. 2)"));
-    _tableItemModel->endModelBuilding();
+    updateTableModel();
 
     // Apply the layout
     getWidget().setLayout(layout);
@@ -284,7 +294,7 @@ void DEMultiSpeciesPlugin::init()
     _dropWidget = new DropWidget(_currentDatasetNameLabel);
 
     // Set the drop indicator widget (the widget that indicates that the view is eligible for data dropping)
-    _dropWidget->setDropIndicatorWidget(new DropWidget::DropIndicatorWidget(&getWidget(), "No data loaded", "Drag an item from the data hierarchy and drop it here to visualize data..."));
+    _dropWidget->setDropIndicatorWidget(new DropWidget::DropIndicatorWidget(&getWidget(), "Drag an item points and clusters", ""));
 
     // Initialize the drop regions
     _dropWidget->initialize([this](const QMimeData* mimeData) -> DropWidget::DropRegions {
@@ -304,7 +314,7 @@ void DEMultiSpeciesPlugin::init()
         const auto datasetGuiName = dataset->getGuiName();
         const auto datasetId = dataset->getId();
         const auto dataType = dataset->getDataType();
-        const auto dataTypes = DataTypes({ PointType });
+        const auto dataTypes = DataTypes({ PointType, ClusterType });
 
         // Visually indicate if the dataset is of the wrong data type and thus cannot be dropped
         if (!dataTypes.contains(dataType)) {
@@ -316,25 +326,32 @@ void DEMultiSpeciesPlugin::init()
             // Accept points datasets drag and drop
             if (dataType == PointType) {
 
-                auto candidateDataset = mv::data().getDataset<Points>(datasetId);
+                const auto candidateDataset = mv::data().getDataset<Points>(datasetId);
 
-                const auto description = QString("Load %1 into example view").arg(datasetGuiName);
-
-                if (_points == candidateDataset) {
-
-                    // Dataset cannot be dropped because it is already loaded
+                if (_points == candidateDataset) { // Dataset cannot be dropped because it is already loaded
                     dropRegions << new DropWidget::DropRegion(this, "Warning", "Data already loaded", "exclamation-circle", false);
                     qDebug() << "ClusterDEMultiSpeciesPlugin: Warning: Data already loaded";
                 }
-                else {
-
-                    // Dataset can be dropped
-                    dropRegions << new DropWidget::DropRegion(this, "Points", description, "map-marker-alt", true, [this, candidateDataset]() {
-
+                else { // Dataset can be dropped
+                    dropRegions << new DropWidget::DropRegion(this, "Points", QString("Load %1 as points").arg(datasetGuiName), "map-marker-alt", true, [this, candidateDataset]() {
                         setPositionDataset(candidateDataset);
-
                         });
                 }
+            }
+            else if (dataType == ClusterType) {
+
+                const auto candidateDataset = mv::data().getDataset<Clusters>(datasetId);
+
+                if (_clusters == candidateDataset) { // Dataset cannot be dropped because it is already loaded
+                    dropRegions << new DropWidget::DropRegion(this, "Warning", "Data already loaded", "exclamation-circle", false);
+                    qDebug() << "ClusterDEMultiSpeciesPlugin: Warning: Data already loaded";
+                }
+                else { // Dataset can be dropped
+                    dropRegions << new DropWidget::DropRegion(this, "Clusters", QString("Load %1 as clusters").arg(datasetGuiName), "map-marker-alt", true, [this, candidateDataset]() {
+                        setClustersDataset(candidateDataset);
+                        });
+                }
+
             }
         }
 
@@ -366,20 +383,15 @@ void DEMultiSpeciesPlugin::init()
         selection = _points->getSelectionIndices();
 
         // ensure selection is unique and sorted
-        auto sortAndUnique = [](std::vector<uint32_t>& selection) -> void {
-            std::sort(selection.begin(), selection.end());
-            const auto last = std::unique(selection.begin(), selection.end());
-            selection.erase(last, selection.end());
-            };
-
-        sortAndUnique(selection);
+        local::sortAndUnique(selection);
 
         label.setText(QString("(%1 items)").arg(selection.size()));
 
         const auto otherData     = _additionalSettingsDialog.getSelectionMappingSourcePicker().getCurrentDataset<Points>();
         auto& otherDataSelection = _additionalSettingsDialog.getSelection(selectionName);
         otherDataSelection       = otherData.isValid() ? otherData->getSelection<Points>()->indices : std::vector<uint32_t>{};
-        sortAndUnique(otherDataSelection);
+
+        local::sortAndUnique(otherDataSelection);
 
         qDebug() << "ClusterDEMultiSpeciesPlugin: Saved selection " << selectionName << " with " << selection.size() << " items.";
 
@@ -398,10 +410,7 @@ void DEMultiSpeciesPlugin::init()
 
             // Check if the selection mapping makes sense
             const auto [selectionMapping, numPointsTarget] = getSelectionMappingOtherToCurrent(otherData, _points);
-            const bool useOtherSelection =
-                selectionMapping != nullptr &&
-                numPointsTarget == _points->getNumPoints() &&
-                checkSurjectiveMapping(selectionMapping, numPointsTarget);
+            const bool useOtherSelection = isSurjectiveMappingValid(selectionMapping, numPointsTarget, _points);
 
             otherData->getSelection<Points>()->indices = useOtherSelection ? _additionalSettingsDialog.getSelection(selectionName) : std::vector<uint32_t>{};
             
@@ -431,7 +440,7 @@ void DEMultiSpeciesPlugin::init()
         });
 
     QGridLayout* selectionLayout = new QGridLayout();
-    for (std::size_t i = 0; i < _selectedCellsLabel.size(); ++i)
+    for (uint8_t i = 0; i < _selectedCellsLabel.size(); ++i)
     {
         selectionLayout->addWidget(_setSelectionTriggerActions.getTriggerAction(i)->createWidget(&mainWidget), 0, i);
         selectionLayout->addWidget(_highlightSelectionTriggerActions.getTriggerAction(i)->createWidget(&mainWidget), 1, i);
@@ -439,112 +448,191 @@ void DEMultiSpeciesPlugin::init()
     }
 
     layout->addLayout(selectionLayout);
-
-     // Load points when the pointer to the position dataset changes
-    connect(&_points, &Dataset<Points>::changed, this, &DEMultiSpeciesPlugin::positionDatasetChanged);
 }
 
+void DEMultiSpeciesPlugin::updateTableModel() {
+
+    _tableItemModel->invalidate();
+
+    int currentColumn = 0;
+
+    if (!_clusters.isValid()) {
+        _totalTableColumns = 4;
+
+        _tableItemModel->startModelBuilding(_totalTableColumns, 0);
+        _tableItemModel->setHorizontalHeader(currentColumn++, QString("ID"));
+        _tableItemModel->setHorizontalHeader(currentColumn++, QString("DE"));
+        _tableItemModel->setHorizontalHeader(currentColumn++, QString("Mean (Sel. 1)"));
+        _tableItemModel->setHorizontalHeader(currentColumn++, QString("Mean (Sel. 2)"));
+        _tableItemModel->endModelBuilding();
+
+        return;
+    }
+
+    const auto& clusterNames = _clusters->getClusterNames();
+    const auto numSpecies    = clusterNames.size();
+       
+    _totalTableColumns  = static_cast<int>(1 + numSpecies * 3);
+
+    _tableItemModel->startModelBuilding(_totalTableColumns, 0);
+    _tableItemModel->setHorizontalHeader(currentColumn++, QString("ID"));
+
+    for (const auto& speciesName : clusterNames) {
+        const auto shortName = speciesName.first(3);
+        _tableItemModel->setHorizontalHeader(currentColumn++, QString("DE (%1)").arg(speciesName));
+        _tableItemModel->setHorizontalHeader(currentColumn++, QString("Mean 1 (%1)").arg(shortName));
+        _tableItemModel->setHorizontalHeader(currentColumn++, QString("Mean 2 (%1)").arg(shortName));
+    }
+
+    _tableItemModel->endModelBuilding();
+}
 
 void DEMultiSpeciesPlugin::setPositionDataset(const mv::Dataset<Points>& newPoints)
 {
     if (!newPoints.isValid())
     {
-        qDebug() << "DEMultiSpeciesPlugin Warning: invalid dataset!";
+        qDebug() << "DEMultiSpeciesPlugin Warning: invalid points dataset!";
         return;
     }
 
     _points = newPoints;
+    _clusters = {};
+    _useSelMapForDE = 0;
 
-    // Update the current dataset name label and dimension picker
-    _currentDatasetNameLabel->setText(QString("Current points dataset: %1").arg(_points->getGuiName()));
+    // Update the current data model and dimension picker
+    updateTableModel();
     _currentSelectedDimension.setPointsDataset(_points);
 
     // Only show the drop indicator when nothing is loaded in the dataset reference
-    _dropWidget->setShowDropIndicator(false);
+    if (_points.isValid() && _clusters.isValid()) {
+        _currentDatasetNameLabel->setText(QString("Current datasets: %1 (%2)").arg(_points->getGuiName(), _clusters->getGuiName()));
+        _dropWidget->setShowDropIndicator(false);
+        computeMetaData();
+    }
 }
 
-void DEMultiSpeciesPlugin::positionDatasetChanged()
+void DEMultiSpeciesPlugin::setClustersDataset(const mv::Dataset<Clusters>& newClusters)
 {
-    // Do not show the drop indicator if there is a valid point positions dataset
-    _dropWidget->setShowDropIndicator(!_points.isValid());
+    if (!newClusters.isValid())
+    {
+        qDebug() << "DEMultiSpeciesPlugin Warning: invalid cluster dataset!";
+        return;
+    }
+
+    // We accept these cases: 
+    // 1. the number of points in clusters equals number of points
+    // 2. there is a selection map between
+
+    const size_t numPoints      = _points->getNumPoints();
+    const size_t numClusterIDs  = std::accumulate(
+        newClusters->getClusters().begin(), newClusters->getClusters().end(),
+        0ULL,
+        [](auto sum, const auto& v) { return sum + v.getIndices().size(); }
+    );
+
+    if (numPoints == numClusterIDs) {
+        _useSelMapForDE = 1;
+        qDebug() << "DEMultiSpeciesPlugin: Points and clusters data cover same number of IDs";
+    }
+    else if (const auto otherData = _additionalSettingsDialog.getSelectionMappingSourcePicker().getCurrentDataset<Points>(); otherData.isValid()) {
+        _useSelMapForDE = 2;
+        qDebug() << "DEMultiSpeciesPlugin: Use selection mapping from " << otherData->getGuiName() << " to connect points and clusters";
+    }
+    else {
+        qDebug() << "DEMultiSpeciesPlugin Warning: Points and clusters do not match. Maybe pick a selection mapping data set first and then add the cluster data again.";
+        _useSelMapForDE = 0;
+        return;
+    }
+
+    _clusters = newClusters;
+
+    // Update the current data model
+    updateTableModel();
+
+    // Only show the drop indicator when nothing is loaded in the dataset reference
+    if (_points.isValid() && _clusters.isValid()) {
+        _currentDatasetNameLabel->setText(QString("Current datasets: %1 (%2)").arg(_points->getGuiName(), _clusters->getGuiName()));
+        _dropWidget->setShowDropIndicator(false);
+        computeMetaData();
+    }
+}
+
+const std::vector<unsigned int>& DEMultiSpeciesPlugin::getSpeciesIDs(const size_t species)
+{
+    _mappedSpeciesIDs.clear();
+
+    if (_useSelMapForDE == 2) { // Map from species to points
+        const auto otherData = _additionalSettingsDialog.getSelectionMappingSourcePicker().getCurrentDataset<Points>();
+        const auto [selectionMapping, numPointsTarget] = getSelectionMappingOtherToCurrent(otherData, _points);
+        const bool validSelectionMap = isSurjectiveMappingValid(selectionMapping, numPointsTarget, _points);
+
+        if (!validSelectionMap)
+            qDebug() << "ClusterDEMultiSpeciesPlugin: Invalid selectin map - things are about to break";
+
+        const std::map<std::uint32_t, std::vector<std::uint32_t>>& mapSpeciesToPoints = selectionMapping->getMapping().getMap();
+
+        const auto& speciesIndices = _clusters->getClusters()[species].getIndices();
+        for (const std::uint32_t speciesID : speciesIndices) {
+
+            if (!mapSpeciesToPoints.contains(speciesID))
+                continue;
+
+            const auto& mappedIDs = mapSpeciesToPoints.at(speciesID);
+            _mappedSpeciesIDs.insert(_mappedSpeciesIDs.end(), mappedIDs.begin(), mappedIDs.end());
+        }
+
+        local::sortAndUnique(_mappedSpeciesIDs);
+
+        return _mappedSpeciesIDs;
+    }
+
+    auto& clusterIDs = _clusters->getClusters()[species].getIndices();
+    local::sortAndUnique(clusterIDs);
+
+    return clusterIDs;
+}
+
+void DEMultiSpeciesPlugin::computeMetaData()
+{
+    if (!(_points.isValid() && _clusters.isValid()))
+        return;
 
     // Compute normalization
+    const auto& speciesClusters = _clusters->getClusters();
+    const auto numSpecies       = speciesClusters.size();
     const auto numDimensions    = _points->getNumDimensions();
     const auto numPoints        = _points->getNumPoints();
 
-    // check if min and max need to be recomputed or are stored
-    // first check if there are dimension statistics stored in the properties and if they contain min and max values
-    QVariantMap dimensionStatisticsMap = _points->getProperty("Dimension Statistics").toMap();
-    bool recompute = dimensionStatisticsMap.empty();
-    recompute |= (dimensionStatisticsMap.constFind("min") == dimensionStatisticsMap.constEnd());
-    recompute |= (dimensionStatisticsMap.constFind("max") == dimensionStatisticsMap.constEnd());
+    qDebug() << "ClusterDEMultiSpeciesPlugin: Computing dimension ranges";
+    local::resizeNestedVec(_minValues, numSpecies, numDimensions, std::numeric_limits<float>::max());
+    local::resizeNestedVec(_rescaleValues, numSpecies, numDimensions, std::numeric_limits<float>::max());
+    
+    int species = 0;
 
-    if (recompute)
-    {
-        qDebug() << "ClusterDEMultiSpeciesPlugin: Computing dimension ranges";
-        _minValues.resize(numDimensions, std::numeric_limits<float>::max());
-        _rescaleValues.resize(numDimensions, std::numeric_limits<float>::lowest());
-
-        std::vector<std::size_t> count(numDimensions, 0);
-
-        local::visitAllElements(_points, [this, &count](auto row, auto column, auto value)->void
-            {
-                if (value > _rescaleValues[column])
-                    _rescaleValues[column] = value;
-                if (value < _minValues[column])
-                    _minValues[column] = value;
-                count[column]++;
-            });
-
-        // check for potential 0 values and add them to the min and max range if needed
-#pragma omp parallel for schedule(dynamic,1)
-        for (std::ptrdiff_t d = 0; d < numDimensions; d++)
+    auto computeMinAndRescale = [this, &species](auto globalRowID, auto localRowID, auto column, auto value) -> void 
         {
-            if (count[d] < numPoints)
-            {
-                if (_minValues[d] > 0)
-                    _minValues[d] = 0;
-                if (_rescaleValues[d] < 0)
-                    _minValues[d] = 0;
-            }
-        }
+            if (value > _rescaleValues[species][column])
+                _rescaleValues[species][column] = value;
 
-        // store min and max values in the properties
-        dimensionStatisticsMap["min"] = QVariantList(_minValues.cbegin(), _minValues.cend());
-        dimensionStatisticsMap["max"] = QVariantList(_rescaleValues.cbegin(), _rescaleValues.cend());
-        _points->setProperty("Dimension Statistics", dimensionStatisticsMap);
-    }
-    else
-    {
-        const QVariantList minList = dimensionStatisticsMap["min"].toList();
-        const QVariantList maxList = dimensionStatisticsMap["max"].toList();
-        recompute |= (minList.size() != numDimensions);
-        recompute |= (maxList.size() != numDimensions);
-        if (!recompute)
-        {
-            qDebug() << "ClusterDEMultiSpeciesPlugin: Loading dimension ranges";
-            // load them from properties
-            _minValues.resize(numDimensions);
-            _rescaleValues.resize(numDimensions);
-#pragma  omp parallel for
-            for (std::ptrdiff_t i = 0; i < numDimensions; ++i)
-            {
-                _minValues[i]        = minList[i].toFloat();
-                _rescaleValues[i]    = maxList[i].toFloat();
-            }
+            if (value < _minValues[species][column])
+                _minValues[species][column] = value;
+        };
 
-        }
-    }
+    for (; species < numSpecies; species++) {
+        const std::vector<unsigned int>& speciesIDs = getSpeciesIDs(species);
 
-    // Compute rescale values
+        local::visitElements(_points, speciesIDs, computeMinAndRescale);
+
+        // Compute rescale values
 #pragma omp parallel for schedule(dynamic,1)
-    for (std::ptrdiff_t d = 0; d < numDimensions; d++)
-    {
-        const float diff = (_rescaleValues[d] - _minValues[d]);
-        if (std::fabs(diff) > 1e-6f)
-            _rescaleValues[d] = 1.0f / diff;
-        else
-            _rescaleValues[d] = 1.0f;
+        for (std::ptrdiff_t dim = 0; dim < numDimensions; dim++)
+        {
+            const float diff = (_rescaleValues[species][dim] - _minValues[species][dim]);
+            if (std::fabs(diff) > 1e-6f)
+                _rescaleValues[species][dim] = 1.0f / diff;
+            else
+                _rescaleValues[species][dim] = 1.0f;
+        }
     }
 
     qDebug() << "DEMultiSpeciesPlugin: Loaded " << numDimensions << " dimensions for " << numPoints << " points";
@@ -588,7 +676,7 @@ void DEMultiSpeciesPlugin::writeToCSV() const
 
 void DEMultiSpeciesPlugin::computeDE()
 {
-    if (!_points.isValid())
+    if (!(_points.isValid() && _clusters.isValid()))
         return;
 
     _tableItemModel->invalidate();
@@ -596,61 +684,69 @@ void DEMultiSpeciesPlugin::computeDE()
     // Compute differential expr
     qDebug() << "ClusterDEMultiSpeciesPlugin: Computing differential expression.";
 
+    auto& speciesClusters               = _clusters->getClusters();
+    const size_t numSpecies             = speciesClusters.size();
     const std::ptrdiff_t numDimensions = _points->getNumDimensions();
-    const size_t selectionSizeA = _selectionA.size();
-    const size_t selectionSizeB = _selectionB.size();
+    const size_t selectionSizeA        = _selectionA.size();
+    const size_t selectionSizeB        = _selectionB.size();
 
     // for mean, sum all values and divide by size later
-    std::vector<float> meansA(numDimensions, 0);
-    std::vector<float> meansB(numDimensions, 0);
+    std::vector<std::vector<float>> meansA;
+    std::vector<std::vector<float>> meansB;
 
-    // for median, collect per dimension values and sprt later
-    // TODO: maybe look for median dynamically, instead of store the vectors
-    std::vector<std::vector<float>> valuesA(numDimensions, std::vector<float>(selectionSizeA, 0));
-    std::vector<std::vector<float>> valuesB(numDimensions, std::vector<float>(selectionSizeB, 0));
-    std::vector<float> mediansA(numDimensions, 0);
-    std::vector<float> mediansB(numDimensions, 0);
+    local::resizeNestedVec(meansA, numSpecies, numDimensions, 0.f);
+    local::resizeNestedVec(meansB, numSpecies, numDimensions, 0.f);
 
-    auto computeAvgHelper = [this](const std::vector<uint32_t>& selectionIDs, std::vector<float>& means, std::vector<std::vector<float>>& valCopies) -> void {
-        local::visitElements(_points, selectionIDs, [&means, &valCopies](auto globalRowID, auto localRowID, auto column, auto value)
-            {
+    auto computeAvg= [this](const std::vector<uint32_t>& selectionIDs, std::vector<float>& means) -> void {
+        local::visitElements(_points, selectionIDs, [&means](auto globalRowID, auto localRowID, auto column, auto value) -> void {
                 means[column] += value;
-                valCopies[column][localRowID] = value; // for median
             });
         };
 
-    auto computeMedian = [](std::vector<float>& vec) -> float {
-        std::nth_element(vec.begin(), vec.begin() + vec.size() / 2, vec.end());
-        return vec[vec.size() / 2];
+    auto normAvg = [&](const std::vector<float>& avgs, const std::vector<float>& mins, const std::vector<float>& norm, const std::ptrdiff_t dim) -> float {
+        return (avgs[dim] - mins[dim]) * norm[dim];
         };
 
-    auto normAvg = [&](const std::vector<float>& avgs, const std::ptrdiff_t dim) -> float {
-        return (avgs[dim] - _minValues[dim]) * _rescaleValues[dim];
+    auto intersection = [](const std::vector<unsigned int>& a, const std::vector<unsigned int>& b) -> std::vector<unsigned int> {
+        std::vector<unsigned int> intersection;
+        std::set_intersection(
+            a.cbegin(), a.cend(),
+            b.cbegin(), b.cend(),
+            std::back_inserter(intersection)
+        );
+        return intersection;
         };
 
-    // first compute the sum of values per dimension for _selectionA and _selectionB
-    // and copy the respective expresion values for median computation (requires sorting)
-    computeAvgHelper(_selectionA, meansA, valuesA);
-    computeAvgHelper(_selectionB, meansB, valuesB);
+    for (size_t species = 0; species < numSpecies; species++) {
+        const std::vector<unsigned int>& speciesID = getSpeciesIDs(species);
+
+        auto& meansA_species = meansA[species];
+        auto& meansB_species = meansB[species];
+
+        // We know that _selectionA, _selectionB and speciesID are sorted, it's done above
+        const std::vector<unsigned int> selA_species = intersection(_selectionA, speciesID);
+        const std::vector<unsigned int> selB_species = intersection(_selectionB, speciesID);
+
+        computeAvg(selA_species, meansA_species);
+        computeAvg(selB_species, meansB_species);
+
+        const auto& mins_species = _minValues[species];
+        const auto& norms_species = _rescaleValues[species];
 
 #pragma omp parallel for schedule(dynamic,1)
-    for (std::ptrdiff_t d = 0; d < numDimensions; d++)
-    {
-        // first divide means by number of rows
-        meansA[d] /= selectionSizeA;
-        meansB[d] /= selectionSizeB;
+        for (std::ptrdiff_t d = 0; d < numDimensions; d++)
+        {
+            // first divide means by number of rows
+            meansA_species[d] /= selectionSizeA;
+            meansB_species[d] /= selectionSizeB;
 
-        // compute median
-        mediansA[d] = computeMedian(valuesA[d]);
-        mediansB[d] = computeMedian(valuesB[d]);
-
-        // then min max - optional by toggle action
-        if (_norm) {
-            meansA[d]   = normAvg(meansA, d);
-            meansB[d]   = normAvg(meansB, d);
-            mediansA[d] = normAvg(mediansA, d);
-            mediansB[d] = normAvg(mediansB, d);
+            // then min max - optional by toggle action
+            if (_norm) {
+                meansA_species[d] = normAvg(meansA_species, mins_species, norms_species, d);
+                meansB_species[d] = normAvg(meansB_species, mins_species, norms_species, d);
+            }
         }
+
     }
 
     const auto& dimensionNames = _points->getDimensionNames();
@@ -659,19 +755,20 @@ void DEMultiSpeciesPlugin::computeDE()
 #pragma omp  parallel for schedule(dynamic,1)
     for (std::ptrdiff_t dimension = 0; dimension < numDimensions; ++dimension)
     {
-        std::vector<QVariant> dataVector = {
-            dimensionNames[dimension],
-            local::fround(meansA[dimension] - meansB[dimension], 3),
-            local::fround(meansA[dimension], 3),
-            local::fround(meansB[dimension], 3),
-            local::fround(mediansA[dimension], 3),
-            local::fround(mediansB[dimension], 3),
-        };
+        std::vector<QVariant> dataVector = { dimensionNames[dimension] };
+        dataVector.reserve(_totalTableColumns);
+            
+        for (size_t species = 0; species < numSpecies; species++) {
+            dataVector.push_back(local::fround(meansA[species][dimension] - meansB[species][dimension], 3));    // Differential expression
+            dataVector.push_back(local::fround(meansA[species][dimension], 3));
+            dataVector.push_back(local::fround(meansB[species][dimension], 3));
+        }
 
         assert(dataVector.size() == _totalTableColumns);
 
         _tableItemModel->setRow(dimension, dataVector, Qt::Unchecked, true);
     }
+
     _tableItemModel->endModelBuilding();
 }
 
@@ -767,6 +864,16 @@ QVariantMap DEMultiSpeciesPlugin::toVariantMap() const
 DEMultiSpeciesPluginFactory::DEMultiSpeciesPluginFactory()
 {
     setIconByName("table");
+
+    for (const auto& tutorial_file : list_tutorial_files("tutorials/DEMultiSpecies")) {
+        if (insert_md_into_json(tutorial_file)) {
+
+            if (auto tutorial_json = readJSON(tutorial_file)) {
+                mv::help().addTutorial(new LearningCenterTutorial(tutorial_json.value()["tutorials"].toArray().first().toObject().toVariantMap()));
+            }
+            
+        }
+    }
 }
 
 ViewPlugin* DEMultiSpeciesPluginFactory::produce()
