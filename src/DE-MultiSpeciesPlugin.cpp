@@ -885,15 +885,15 @@ DEMultiSpeciesPluginFactory::DEMultiSpeciesPluginFactory()
 {
     setIconByName("table");
 
-    for (const auto& tutorial_file : list_tutorial_files("tutorials/DEMultiSpecies")) {
-        if (insert_md_into_json(tutorial_file)) {
+    //for (const auto& tutorial_file : list_tutorial_files("tutorials/DEMultiSpecies")) {
+    //    if (insert_md_into_json(tutorial_file)) {
 
-            if (auto tutorial_json = readJSON(tutorial_file)) {
-                mv::help().addTutorial(new LearningCenterTutorial(tutorial_json.value()["tutorials"].toArray().first().toObject().toVariantMap()));
-            }
-            
-        }
-    }
+    //        if (auto tutorial_json = readJSON(tutorial_file)) {
+    //            mv::help().addTutorial(new LearningCenterTutorial(tutorial_json.value()["tutorials"].toArray().first().toObject().toVariantMap()));
+    //        }
+    //        
+    //    }
+    //}
 }
 
 ViewPlugin* DEMultiSpeciesPluginFactory::produce()
