@@ -43,7 +43,7 @@ public:
     /** This function is called by the core after the view plugin has been created */
     void init() override;
 
-    void setPositionDataset(const mv::Dataset<Points>& newPoints);
+    void setPositionDataset(const mv::Dataset<Points>& newPoints, bool resetClusterGUID = true);
 
     void setClustersDataset(const mv::Dataset<Clusters>& newClusters);
 
@@ -89,6 +89,7 @@ protected:
     DropWidget*                             _dropWidget;                /** Widget for drag and drop behavior */
     mv::Dataset<Points>                     _points;                    /** Points smart pointer */
     mv::Dataset<Clusters>                   _clusters;                  /** Clusters smart pointer */
+    mv::gui::StringAction                   _clustersDataGUID;          // internal for serialization
     QLabel*                                 _currentDatasetNameLabel;   /** Label that show the current dataset name */
    
     MultiTriggerAction                      _setSelectionTriggerActions;
