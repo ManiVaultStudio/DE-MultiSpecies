@@ -87,6 +87,8 @@ It is interesting to capture variability between subsets of the data by comparin
 
 The "Min-max normalization" option scales both mean (and median) of each selection values with `(selection_mean - global_min) / (global_max - global_min)`. The `global_*` values are computed for all data points, also those not selected.
 
+> Note: the screen captures in this tutorial show the DE computation for all species combined, but the in the current project you'll see a distinction between the species.
+
 <p align="middle">
     <img src="./assets/DE.gif" align="middle" width="100%" />
 </p>
