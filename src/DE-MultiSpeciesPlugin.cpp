@@ -124,6 +124,8 @@ DEMultiSpeciesPlugin::DEMultiSpeciesPlugin(const PluginFactory* factory) :
     _loadedDatasetsAction(this, "Current dataset"),
     _dropWidget(nullptr),
     _points(),
+    _clusters(),
+    _clustersDataGUID(this, "clusterDataGUID"),
     _currentDatasetNameLabel(new QLabel()),
     _filterOnIdAction(this, "Filter on Id"),
     _selectedIdAction(this, "Last selected Id"),
@@ -487,7 +489,7 @@ void DEMultiSpeciesPlugin::updateTableModel() {
     _tableItemModel->endModelBuilding();
 }
 
-void DEMultiSpeciesPlugin::setPositionDataset(const mv::Dataset<Points>& newPoints)
+void DEMultiSpeciesPlugin::setPositionDataset(const mv::Dataset<Points>& newPoints, bool resetClusterGUID)
 {
     if (!newPoints.isValid())
     {
@@ -498,6 +500,10 @@ void DEMultiSpeciesPlugin::setPositionDataset(const mv::Dataset<Points>& newPoin
     _points = newPoints;
     _clusters = {};
     _useSelMapForDE = 0;
+
+    if (resetClusterGUID) {
+        _clustersDataGUID.setString("");
+    }
 
     // Update the current data model and dimension picker
     updateTableModel();
@@ -516,6 +522,12 @@ void DEMultiSpeciesPlugin::setClustersDataset(const mv::Dataset<Clusters>& newCl
     if (!newClusters.isValid())
     {
         qDebug() << "DEMultiSpeciesPlugin Warning: invalid cluster dataset!";
+        return;
+    }
+
+    if (!_points.isValid())
+    {
+        qDebug() << "DEMultiSpeciesPlugin Warning: set points dataset first!";
         return;
     }
 
@@ -545,6 +557,7 @@ void DEMultiSpeciesPlugin::setClustersDataset(const mv::Dataset<Clusters>& newCl
     }
 
     _clusters = newClusters;
+    _clustersDataGUID.setString(_clusters->getId());
 
     // Update the current data model
     updateTableModel();
@@ -812,6 +825,7 @@ void DEMultiSpeciesPlugin::fromVariantMap(const QVariantMap& variantMap)
     }
 
     _additionalSettingsDialog.fromParentVariantMap(variantMap);
+    _clustersDataGUID.fromParentVariantMap(variantMap);
 
     QVariantMap propertiesMap = local::get_strict_value<QVariantMap>(variantMap.value("#Properties"));
     if (!propertiesMap.isEmpty())
@@ -831,7 +845,12 @@ void DEMultiSpeciesPlugin::fromVariantMap(const QVariantMap& variantMap)
         }
     }
 
-    setPositionDataset(_points);
+    setPositionDataset(_points, false);
+
+    if (!_clustersDataGUID.getString().isEmpty()) {
+        setClustersDataset(mv::data().getDataset(_clustersDataGUID.getString()));
+    }
+
 }
 
 QVariantMap DEMultiSpeciesPlugin::toVariantMap() const
@@ -845,6 +864,7 @@ QVariantMap DEMultiSpeciesPlugin::toVariantMap() const
     }
 
     _additionalSettingsDialog.insertIntoVariantMap(variantMap);
+    _clustersDataGUID.insertIntoVariantMap(variantMap);
 
     // properties map
     QVariantMap propertiesMap;
