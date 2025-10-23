@@ -2,6 +2,9 @@
 
 #include <Dataset.h>
 #include <ViewPlugin.h>
+#include <actions/StringAction.h>
+#include <actions/ToggleAction.h>
+#include <actions/TriggerAction.h>
 #include <ClusterData/ClusterData.h>
 #include <PointData/DimensionPickerAction.h>
 #include <PointData/PointData.h>
@@ -16,6 +19,7 @@
 #include "TableView.h"
 
 #include <array>
+#include <cstdint>
 
 #include <QTableWidget>
 
@@ -119,6 +123,9 @@ protected:
 
     std::vector<std::vector<float>>         _minValues = {};            // min values for each dimension for each species (cluster)
     std::vector<std::vector<float>>         _rescaleValues = {};        // rescale values for each dimension for each species (cluster)
+
+    std::vector<std::vector<float>>         _minValuesGlob = {};            // min values, global, for all species
+    std::vector<std::vector<float>>         _rescaleValuesGlob = {};        // rescale values, global, for all species
 
     std::vector<uint32_t>                   _selectionA = {};
     std::vector<uint32_t>                   _selectionB = {};
