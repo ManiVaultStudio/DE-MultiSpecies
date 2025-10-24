@@ -778,7 +778,7 @@ void DEMultiSpeciesPlugin::computeDE()
             de_clusters[species] = local::fround(meansA[species][dimension] - meansB[species][dimension], 4);
             de_global += de_clusters[species];
         }
-        dataVector.push_back(de_global);                                                    // Differential expression global
+        dataVector.push_back(local::fround(de_global, 4));                                  // Differential expression global
 
         for (size_t species = 0; species < numSpecies; species++) {
             dataVector.push_back(de_clusters[species]);                                     // Differential expression of individual species
