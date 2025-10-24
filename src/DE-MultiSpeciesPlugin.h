@@ -2,6 +2,9 @@
 
 #include <Dataset.h>
 #include <ViewPlugin.h>
+#include <actions/StringAction.h>
+#include <actions/ToggleAction.h>
+#include <actions/TriggerAction.h>
 #include <ClusterData/ClusterData.h>
 #include <PointData/DimensionPickerAction.h>
 #include <PointData/PointData.h>
@@ -16,6 +19,7 @@
 #include "TableView.h"
 
 #include <array>
+#include <cstdint>
 
 #include <QTableWidget>
 
