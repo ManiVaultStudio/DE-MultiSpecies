@@ -459,13 +459,11 @@ void DEMultiSpeciesPlugin::updateTableModel() {
     int currentColumn = 0;
 
     if (!_clusters.isValid()) {
-        _totalTableColumns = 4;
+        _totalTableColumns = 2;
 
         _tableItemModel->startModelBuilding(_totalTableColumns, 0);
         _tableItemModel->setHorizontalHeader(currentColumn++, QString("ID"));
         _tableItemModel->setHorizontalHeader(currentColumn++, QString("DE"));
-        _tableItemModel->setHorizontalHeader(currentColumn++, QString("Mean (Sel. 1)"));
-        _tableItemModel->setHorizontalHeader(currentColumn++, QString("Mean (Sel. 2)"));
         _tableItemModel->endModelBuilding();
 
         return;
@@ -474,16 +472,15 @@ void DEMultiSpeciesPlugin::updateTableModel() {
     const auto& clusterNames = _clusters->getClusterNames();
     const auto numSpecies    = clusterNames.size();
        
-    _totalTableColumns  = static_cast<int>(1 + numSpecies * 3);
+    _totalTableColumns  = static_cast<int>(2 + numSpecies);
 
     _tableItemModel->startModelBuilding(_totalTableColumns, 0);
     _tableItemModel->setHorizontalHeader(currentColumn++, QString("ID"));
+    _tableItemModel->setHorizontalHeader(currentColumn++, QString("DE (global)"));
 
     for (const auto& speciesName : clusterNames) {
         const auto shortName = speciesName.first(3);
         _tableItemModel->setHorizontalHeader(currentColumn++, QString("DE (%1)").arg(speciesName));
-        _tableItemModel->setHorizontalHeader(currentColumn++, QString("Mean 1 (%1)").arg(shortName));
-        _tableItemModel->setHorizontalHeader(currentColumn++, QString("Mean 2 (%1)").arg(shortName));
     }
 
     _tableItemModel->endModelBuilding();
@@ -699,9 +696,10 @@ void DEMultiSpeciesPlugin::computeDE()
 
     auto& speciesClusters               = _clusters->getClusters();
     const size_t numSpecies             = speciesClusters.size();
-    const std::ptrdiff_t numDimensions = _points->getNumDimensions();
-    const size_t selectionSizeA        = _selectionA.size();
-    const size_t selectionSizeB        = _selectionB.size();
+    const std::ptrdiff_t numDimensions  = _points->getNumDimensions();
+    const unsigned int numPoints        = _points->getNumPoints();
+    const size_t selectionSizeA         = _selectionA.size();
+    const size_t selectionSizeB         = _selectionB.size();
 
     // for mean, sum all values and divide by size later
     std::vector<std::vector<float>> meansA;
@@ -743,7 +741,7 @@ void DEMultiSpeciesPlugin::computeDE()
         computeAvg(selA_species, meansA_species);
         computeAvg(selB_species, meansB_species);
 
-        const auto& mins_species = _minValues[species];
+        const auto& mins_species  = _minValues[species];
         const auto& norms_species = _rescaleValues[species];
 
 #pragma omp parallel for schedule(dynamic,1)
@@ -768,13 +766,22 @@ void DEMultiSpeciesPlugin::computeDE()
 #pragma omp  parallel for schedule(dynamic,1)
     for (std::ptrdiff_t dimension = 0; dimension < numDimensions; ++dimension)
     {
-        std::vector<QVariant> dataVector = { dimensionNames[dimension] };
+        std::vector<QVariant> dataVector = {};
         dataVector.reserve(_totalTableColumns);
-            
+
+        dataVector.push_back(dimensionNames[dimension]);                                     // Observation ID
+
+        std::vector<float> de_clusters(numSpecies, 0.f);
+
+        float de_global = 0;
         for (size_t species = 0; species < numSpecies; species++) {
-            dataVector.push_back(local::fround(meansA[species][dimension] - meansB[species][dimension], 3));    // Differential expression
-            dataVector.push_back(local::fround(meansA[species][dimension], 3));
-            dataVector.push_back(local::fround(meansB[species][dimension], 3));
+            de_clusters[species] = local::fround(meansA[species][dimension] - meansB[species][dimension], 4);
+            de_global += de_clusters[species];
+        }
+        dataVector.push_back(local::fround(de_global, 4));                                  // Differential expression global
+
+        for (size_t species = 0; species < numSpecies; species++) {
+            dataVector.push_back(de_clusters[species]);                                     // Differential expression of individual species
         }
 
         assert(dataVector.size() == _totalTableColumns);
