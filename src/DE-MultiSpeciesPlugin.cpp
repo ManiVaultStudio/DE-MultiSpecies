@@ -741,7 +741,7 @@ void DEMultiSpeciesPlugin::computeDE()
         computeAvg(selA_species, meansA_species);
         computeAvg(selB_species, meansB_species);
 
-        const auto& mins_species = _minValues[species];
+        const auto& mins_species  = _minValues[species];
         const auto& norms_species = _rescaleValues[species];
 
 #pragma omp parallel for schedule(dynamic,1)
@@ -763,31 +763,25 @@ void DEMultiSpeciesPlugin::computeDE()
     const auto& dimensionNames = _points->getDimensionNames();
 
     _tableItemModel->startModelBuilding(_totalTableColumns, numDimensions);
-//#pragma omp  parallel for schedule(dynamic,1)
+#pragma omp  parallel for schedule(dynamic,1)
     for (std::ptrdiff_t dimension = 0; dimension < numDimensions; ++dimension)
     {
         std::vector<QVariant> dataVector = {};
         dataVector.reserve(_totalTableColumns);
 
-        dataVector.push_back(dimensionNames[dimension]);                                                        // Observation ID
+        dataVector.push_back(dimensionNames[dimension]);                                     // Observation ID
 
         std::vector<float> de_clusters(numSpecies, 0.f);
 
         float de_global = 0;
         for (size_t species = 0; species < numSpecies; species++) {
-            de_clusters[species] = local::fround(meansA[species][dimension] - meansB[species][dimension], 3);
-            qDebug() << speciesClusters[species].getNumberOfIndices();
-            qDebug() << numPoints;
-            qDebug() << speciesClusters[species].getNumberOfIndices() / numPoints;  // TODO: this number of points must be adjusted when a selectionDataset is defined in the additional settings
-            qDebug() << de_clusters[species];
-            qDebug() << de_clusters[species] * speciesClusters[species].getNumberOfIndices() / numPoints;
-            de_global += de_clusters[species] * speciesClusters[species].getNumberOfIndices() / numPoints;
+            de_clusters[species] = local::fround(meansA[species][dimension] - meansB[species][dimension], 4);
+            de_global += de_clusters[species];
         }
-        de_global /= numSpecies;
-        dataVector.push_back(de_global);                                                                        // Differential expression global
+        dataVector.push_back(de_global);                                                    // Differential expression global
 
         for (size_t species = 0; species < numSpecies; species++) {
-            dataVector.push_back(de_clusters[species]);                                                         // Differential expression of individual species
+            dataVector.push_back(de_clusters[species]);                                     // Differential expression of individual species
         }
 
         assert(dataVector.size() == _totalTableColumns);
