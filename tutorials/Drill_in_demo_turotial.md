@@ -1,15 +1,14 @@
 # Tutorial: Drill-in & re-embedding viewer
 
-This project let's you explore the [HMBA basal ganglia consensus taxonomy](https://alleninstitute.github.io/HMBA_BasalGanglia_Consensus_Taxonomy/) annotated onto human, macaque and marmoset 10X multiome (RNA-seq)<sup>[1](#footnotes)</sup> [[1](https://en.wikipedia.org/wiki/RNA-Seq), [2](https://doi.org/10.1038/s12276-018-0071-8)] profiling. It contains human, macaque and marmoset data. For each species, single-cell variational inference (scVI) [[3](https://doi.org/10.1038/s41592-018-0229-2), [4](https://doi.org/10.1038/s41592-021-01336-8)] values map the respective RNA-seq expressions into a common reference frame. Pre-computed UMAP [[5](https://arxiv.org/abs/1802.03426)] and HSNE [[6](https://doi.org/10.1111/cgf.12878)] are provided. This tutorial will walk you through the main means of interaction with the data, like mapping selections, computing differential expressions, refining HSNE scales and recomputing UMAPs on subsets of the data.
+This project let's you explore RNA-seq data from the [HMBA Basal Ganglia Consensus Cell Type Atlas](https://alleninstitute.github.io/HMBA_BasalGanglia_Consensus_Taxonomy/). It connects RNA-seq data<sup>[1](#footnotes)</sup> [[1](https://en.wikipedia.org/wiki/RNA-Seq), [2](https://doi.org/10.1038/s12276-018-0071-8)] with the consensus taxonomy for human, macaque and marmoset. For each species, single-cell variational inference (scVI) [[3](https://doi.org/10.1038/s41592-018-0229-2), [4](https://doi.org/10.1038/s41592-021-01336-8)] values map the respective RNA-seq expressions from each species into a common reference frame. Pre-computed embeddings (UMAP [[5](https://arxiv.org/abs/1802.03426)] and HSNE [[6](https://doi.org/10.1111/cgf.12878)]) are provided. This tutorial will walk you through the main means of interaction with the data, like mapping selections, computing differential expressions, refining HSNE scales and recomputing embeddings of subsets of the data.
 
 ## Overview
 
 1. A [`sunburst`](https://en.wikipedia.org/wiki/Pie_chart#Ring) plot showing the hierarchical cell type taxonomy for categories that are consistent across species: `Neighbors`, `Class`, `Subclass`, `Group`
 2. A pre-computed `UMAP embedding` of the `scVI` values from all three species, recolored by `Cluster expressions (mean)`
 3. A table of differential expressions for all genes computed on `Cluster expressions (mean)` (empty at the start)
-4. The hierarchy of all data in this project, see [below: _Data hierarchy_
-](#data-hierarchy)
-5. A pre-computed `HSNE embedding` of the `scVI` values from all three species, recolored by `Class` colors
+4. The hierarchy of all data in this project, see [below: _Handling the layout_](#handling-the-layout)
+5. This very tutorial, which you can also detach into a stand-alone window, see [below: _Data hierarchy_](#data-hierarchy)
 6. A large button that will refine a selection in the `HSNE embedding`
 7. An information panel for the currently selected dataset or analysis in the data hierarchy
 
@@ -51,6 +50,27 @@ This project let's you explore the [HMBA basal ganglia consensus taxonomy](https
     </p>
 </div>
 
+### Handling the layout
+
+You can resize and reorder the views in this application. This project also contains some hidden views that you can always choose to toggle visible. The GIFs in this tutorial all show the by default invisible HSNE embedding in place of this tutorial to keep a consistent view of the project structure, but direct interaction with the HSNE embedding is not necessary to make full use this data exploration setup.
+
+<details closed>
+<summary>How to detach and re-attach views (click me to expand)</summary>
+You can drag each view out of the main window by clicking and dragging the views at their names.
+<p align="middle">
+    <img src="./assets/Detach.gif" align="middle" width="100%" />
+</p>
+
+</details>
+
+<details closed>
+<summary>How to show the HSNE top level embedding (click me to expand)</summary>
+A pre-computed <code>HSNE embedding</code> of the <code>scVI</code> values from all three species, recolored by <code>Class</code> colors is not shown by default. This embedding visualizes the same data as the main UMAP embedding, but uses a different algorithm. When you make a selection in the UMAP embedding and "Refine" it (see section <a href="#refine-selections">below: <em>Refine selections</em></a> below), this hierarchy HSNE embedding is the bases of the refinement operation. 
+<p align="middle">
+    <img src="./assets/HSNE-plot.gif" align="middle" width="100%" />
+</p>
+
+</details>
 
 ## Interactions
 The main goal of this viewer is to provide several means of interactively exploration and "zooming into the data".
@@ -93,24 +113,26 @@ The "Min-max normalization" option scales both mean (and median) of each selecti
     <img src="./assets/DE.gif" align="middle" width="100%" />
 </p>
 
-### Drill-in
-Refining selections of the top-level HSNE [[6](https://doi.org/10.1111/cgf.12878)] embedding (lower left) allows you to see more data structure for a subset of the data.
+### Refine selections
+Besides the main UMAP embedding of the RNA-seq data, this project comes with an HSNE [[6](https://doi.org/10.1111/cgf.12878)] embedding of the data. This type of embedding is hierarchical and - in contract to standard embedding techniques like UMAP or t-SNE - creates multiple levels of data abstraction: On the highest level, large-scale structures are emphasized, whereas lower levels encode more detailed structures. By default, the top-level HSNE is hidden (see [above](#handling-the-layout) on how to make it visible). We can use this embedding hierarchy to inspect regions of the data in more detail, for example by selecting a region of interest in the UMAP and "refining" it:
 
-1. Select a subset of cells, e.g. via the taxonomy hierarchy of in a UMAP of HSNE embedding
+1. Select a subset of cells, e.g. via the taxonomy hierarchy or in the UMAP
 2. Click the `Refine` button to drill into this selection
 3. A refined embedding will open in a new scatterplot
-4. Drag and drop meta data, e.g. `subclass` clusters, on the refined embedding
+4. Drag and drop metadata, e.g. `subclass` clusters, on the refined embedding
 
-You can refine HSNE embedding down to the data level. This project starts with a 4-level HSNE hierarchy (one data and three abstraction levels), i.e. you can drill-in three times until reaching the data level.
+Refining selections like this will create a new embedding of the data. For example, in the GIF below, we select a densely populated region in the UMAP and refine it, starting from the highest level of the HSNE hierarchy. This yields a refined view on the data with a more crisp separation of clusters than the UMAP.
 
-The `Refine` button widget provides further settings for the source of the refinement: If you want to further drill into a refinement, select it as the "Dataset" in the drop-down option below the button.
+You can refine HSNE embeddings down to the data level. This project starts with a 4-level HSNE hierarchy (one data and three abstraction levels), i.e., you can refine three times until reaching the data level. In the example below we refine once: the new embedding is situated on the second abstraction level. Note: points in the HSNE refinements do now corresponds to single observations in the data like they do in UMAP; instead, they correspond to a non-exclusive set of observations that are represented by this embedded point. Consequently, selections in the refinements might highlight points outside the selected region, these those points also represent observations covered by the selected embedding points.
+
+The `Refine` button widget provides further settings for the source of the refinement: If you want to further drill into a refinement, select it in the "Dataset" drop-down menu or tick "Focus on refinement" to update this automatically.
 
 <p align="middle">
     <img src="./assets/Refine.gif" align="middle" width="100%" />
 </p>
 
-### Re-embed
-You can compute new UMAP, HSNE, t-SNE or PCA embeddings on either the full data or subsets of the full data in this project. A right-click on an item in the data hierarchy will open a context menu with an `Analyze` entry. Therein, you'll find all available re-embedding options for the respective specific data. Selecting any method will open a settings panel in the `Data properties` widget, showing method-specific options and buttons to start or stop computations.
+### Re-embed the data
+You can compute new UMAP, HSNE, t-SNE or PCA embeddings in this project, either on the full dataset or on a selection. Right-clicking a data item in the `Data hierarchy` (on the right) will open a context menu with an `Analyze` entry. Therein, you'll find all available re-embedding options for the respective specific data. Selecting a method will open a settings panel in the `Data properties` widget, showing method-specific options and buttons to start or stop computations.
 
 For example, we might want to compute a new UMAP of just the marmoset-specific scVI values:
 1. Create a subset of the `scVI` by
@@ -119,6 +141,8 @@ For example, we might want to compute a new UMAP of just the marmoset-specific s
 2. Open a new UMAP analysis via the context menu of the new `Marmoset scVI` data
 3. Adjust settings (optional) and start the computation
 4. Drag and drop the new embedding - which appears as a child to the `Marmoset scVI` data in the data hierarchy - onto a scatterplot, or open it in a new scatterplot via the context-menu.
+
+Computing new UMAPs of the entire data can take a while (say, up to half an hour depending on your local hardware). Computing embeddings of subsets is significantly faster!
 
 <p align="middle">
     <img src="./assets/Recompute.gif" align="middle" width="100%" />
@@ -145,7 +169,7 @@ The data in this project is populated automatically and reproducibly via a [Jupy
 <summary>How to use all expressions for individual genes </summary>
 <div>
     <div style="float: right; width: 40%; margin-left: 10px;">
-        <img src="./assets/sparse_data_access.png" style="width: 100%; display: block;" />
+        <img src="./assets/Sparse_data_access.png" style="width: 100%; display: block;" />
     </div>
     <p>
         You will need to download the full gene expression of the three species and combine them into a single h5 file. The Python script below does this automatically. Note that this will require a LOT of disk space and memory. 
