@@ -7,9 +7,8 @@ This project let's you explore the [HMBA basal ganglia consensus taxonomy](https
 1. A [`sunburst`](https://en.wikipedia.org/wiki/Pie_chart#Ring) plot showing the hierarchical cell type taxonomy for categories that are consistent across species: `Neighbors`, `Class`, `Subclass`, `Group`
 2. A pre-computed `UMAP embedding` of the `scVI` values from all three species, recolored by `Cluster expressions (mean)`
 3. A table of differential expressions for all genes computed on `Cluster expressions (mean)` (empty at the start)
-4. The hierarchy of all data in this project, see [below: _Data hierarchy_
-](#data-hierarchy)
-5. A pre-computed `HSNE embedding` of the `scVI` values from all three species, recolored by `Class` colors
+4. The hierarchy of all data in this project, see [below: _Data hierarchy_](#data-hierarchy)
+5. This very tutorial, which you can also detach into a stand-alone window
 6. A large button that will refine a selection in the `HSNE embedding`
 7. An information panel for the currently selected dataset or analysis in the data hierarchy
 
@@ -51,6 +50,28 @@ This project let's you explore the [HMBA basal ganglia consensus taxonomy](https
     </p>
 </div>
 
+### Handling the layout
+
+<details closed>
+
+<summary>Detaching, and re-attaching views (click me to expand)</summary>
+You can drag each view out of the main window.
+<p align="middle">
+    <img src="./assets/Detach.gif" align="middle" width="100%" />
+</p>
+
+</details>
+
+
+<details closed>
+
+<summary>HSNE top level embedding (click me to expand)</summary>
+A pre-computed `HSNE embedding` of the `scVI` values from all three species, recolored by `Class` colors.
+<p align="middle">
+    <img src="./assets/HSNE-plot.gif" align="middle" width="100%" />
+</p>
+
+</details>
 
 ## Interactions
 The main goal of this viewer is to provide several means of interactively exploration and "zooming into the data".
