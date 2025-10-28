@@ -169,7 +169,7 @@ The data in this project is populated automatically and reproducibly via a [Jupy
 <summary>How to use all expressions for individual genes </summary>
 <div>
     <div style="float: right; width: 40%; margin-left: 10px;">
-        <img src="./assets/sparse_data_access.png" style="width: 100%; display: block;" />
+        <img src="./assets/Sparse_data_access.png" style="width: 100%; display: block;" />
     </div>
     <p>
         You will need to download the full gene expression of the three species and combine them into a single h5 file. The Python script below does this automatically. Note that this will require a LOT of disk space and memory. 
