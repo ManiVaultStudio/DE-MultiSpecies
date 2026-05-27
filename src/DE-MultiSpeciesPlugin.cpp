@@ -635,7 +635,7 @@ void DEMultiSpeciesPlugin::computeMetaData()
 
         // Compute rescale values
 #pragma omp parallel for schedule(dynamic,1)
-        for (std::ptrdiff_t dim = 0; dim < numDimensions; dim++)
+        for (std::ptrdiff_t dim = 0; dim < static_cast<std::ptrdiff_t>(numDimensions); dim++)
         {
             const float diff = (_rescaleValues[species][dim] - _minValues[species][dim]);
             if (std::fabs(diff) > 1e-6f)
