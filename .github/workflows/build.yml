@@ -3,7 +3,7 @@ name: DE-MultiSpeciesPlugin
 on:
   push:
     branches:
-      - main
+      - master
       - 'release/**'
       - 'feature/**'
   pull_request:
